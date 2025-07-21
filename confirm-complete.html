@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ยืนยันจบงาน | ระบบควบคุมเครื่องจักร</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-dark bg-primary mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-gear-fill me-1"></i> ระบบควบคุมเครื่องจักร
+            </a>
+        </div>
+    </nav>
+    <div class="container py-4">
+        <!-- Main Content Container -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="card shadow">
+                    <div class="card-header bg-primary">
+                        <h4 class="mb-0">
+                            <i class="bi bi-check2-circle me-2"></i><span class="fw-bold">ยืนยันจบงาน</span>
+                        </h4>
+                    </div>
+                    <div class="card-body bg-body-tertiary" id="taskConfirmBody"
+                        style="border-radius: 0 0 0.5rem 0.5rem">
+                        <div class="text-center my-4" id="loadingSection">
+                            <div class="spinner-border text-primary" role="status" id="loadingSpinner">
+                                <span class="visually-hidden">กำลังโหลด...</span>
+                            </div>
+                        </div>
+                        <form id="emergencyStopForm" style="display: none">
+                            <!-- ========== Section: Shift & Overtime ========== -->
+                            <div class="row mb-3 g-2">
+                                <div class="col-md-6 col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="shiftLength9h" name="shiftLength9h" checked />
+                                        <label class="form-check-label fw-semibold" for="shiftLength9h"><i class="bi bi-hourglass-top me-1"></i>Shift Length 9 ชั่วโมง (540 นาที)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <div class="form-check mb-1">
+                                        <input class="form-check-input" type="checkbox" id="overtimeEnable" name="overtimeEnable" />
+                                        <label class="form-check-label fw-semibold" for="overtimeEnable"><i class="bi bi-clock-plus me-1"></i>Overtime</label>
+                                    </div>
+                                    <input type="number" class="form-control mt-1" id="overtime" name="overtime" min="0" placeholder="ระบุเวลาทำโอที (นาที) เช่น 60" disabled />
+                                </div>
+                            </div>
+
+                            <!-- ========== Section: Availability ========== -->
+                            <div class="mb-3 border rounded p-3 bg-white">
+                                <h5 class="fw-bold text-primary mb-3"><i class="bi bi-check2-square me-1"></i>Availability</h5>
+                                <div class="row g-2">
+                                    <div class="col-md-6 col-12 mb-2">
+                                        <label for="actualStartTime" class="form-label fw-semibold"><i class="bi bi-clock-history text-primary me-1"></i>เวลาเริ่มงานจริง</label>
+                                        <input type="datetime-local" class="form-control" id="actualStartTime" name="actualStartTime" />
+                                    </div>
+                                    <div class="col-md-6 col-12 mb-2">
+                                        <label for="actualEndTime" class="form-label fw-semibold"><i class="bi bi-clock-history text-danger me-1"></i>เวลาสิ้นสุดงานจริง</label>
+                                        <input type="datetime-local" class="form-control" id="actualEndTime" name="actualEndTime" />
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="card bg-white border shadow-sm mb-2">
+                                        <div class="card-body py-2 px-3">
+                                            <label class="form-label fw-semibold mb-2"><i class="bi bi-pause-circle me-1"></i>Break Time</label>
+                                            <div class="d-flex flex-wrap gap-3 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="morning" id="breakMorning" name="breakTime[]" />
+                                                    <label class="form-check-label" for="breakMorning">เช้า 15 นาที</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="lunch" id="breakLunch" name="breakTime[]" />
+                                                    <label class="form-check-label" for="breakLunch">เที่ยง 60 นาที</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" value="evening" id="breakEvening" name="breakTime[]" />
+                                                    <label class="form-check-label" for="breakEvening">เย็น 15 นาที</label>
+                                                </div>
+                                            </div>
+                                            <div class="mt-1 text-secondary small" id="breakTotalDisplay" style="display:none">
+                                                <i class="bi bi-clock-history me-1"></i>รวมเวลาพัก: <span id="breakTotalMinutes">0</span> นาที
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6 col-12 mb-2">
+                                        <label for="plannedProductionTime" class="form-label fw-semibold">
+                                            <i class="bi bi-calendar-check me-1"></i>Planned Production Time (เวลาผลิตที่วางแผน)
+                                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="ช่วงเวลาทั้งหมดที่กำหนดไว้สำหรับการผลิต โดยไม่รวมเวลาที่ไม่ได้วางแผนไว้">
+                                                <i class="bi bi-info-circle text-secondary"></i>
+                                            </span>
+                                        </label>
+                                        <input type="text" class="form-control bg-light fw-bold" id="plannedProductionTime" name="plannedProductionTime" readonly />
+                                    </div>
+                                    <div class="col-md-6 col-12 mb-2">
+                                        <label for="operatingTime" class="form-label fw-semibold">
+                                            <i class="bi bi-play-circle me-1"></i>Run Time
+                                            <span data-bs-toggle="tooltip" data-bs-placement="top" title="ระยะเวลาทำงานจริงไม่รวมช่วงเวลาที่หยุดทำงาน (Downtime)">
+                                                <i class="bi bi-info-circle text-secondary"></i>
+                                            </span>
+                                        </label>
+                                        <input type="text" class="form-control bg-light fw-bold" id="operatingTime" name="operatingTime" readonly />
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6 col-12 mb-2">
+                                        <label for="downtime" class="form-label fw-semibold"><i class="bi bi-exclamation-triangle text-danger me-1"></i>เวลาหยุดเครื่อง(นาที)</label>
+                                        <input type="number" min="0" class="form-control" id="downtime" name="downtime" placeholder="กรอกจำนวนนาที" />
+                                    </div>
+                                    <div class="col-md-6 col-12 mb-2">
+                                        <label for="downtimeDetail" class="form-label fw-semibold"><i class="bi bi-clipboard-x text-danger me-1"></i>Downtime (รายละเอียดเวลาหยุดเครื่อง)</label>
+                                        <textarea class="form-control" id="downtimeDetail" name="downtimeDetail" rows="2" placeholder="ระบุรายละเอียดเวลาหยุดเครื่อง"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ===== Divider: Section ===== -->
+                            <div class="d-flex align-items-center my-4">
+                                <hr class="flex-grow-1 border-info border-2 opacity-50" />
+                                <span class="mx-3 fs-3 text-info"><i class="bi bi-lightning-charge-fill"></i></span>
+                                <hr class="flex-grow-1 border-info border-2 opacity-50" />
+                            </div>
+                            <!-- ========== Section: Performance Efficiency ========== -->
+                            <div class="mb-3 border rounded p-3 bg-white">
+                                <h5 class="fw-bold text-info mb-3"><i
+                                        class="bi bi-lightning-charge me-1"></i>Performance Efficiency</h5>
+                                <div class="mb-2">
+                                    <label for="idealRunRate" class="form-label fw-semibold"><i
+                                            class="bi bi-speedometer2 text-info me-1"></i>Ideal Run Rate
+                                        (ชิ้น/นาที)</label>
+                                    <input type="number" class="form-control" id="idealRunRate" name="idealRunRate"
+                                        min="1" />
+                                </div>
+                                <div class="mb-2">
+                                    <label for="idealCycleTimeDisplay" class="form-label fw-semibold"><i
+                                            class="bi bi-clock text-info me-1"></i>Cycle Time</label>
+                                    <input type="text" class="form-control bg-light fw-bold" id="idealCycleTimeDisplay"
+                                        name="idealCycleTimeDisplay" value="" readonly />
+                                </div>
+                                <div class="mb-2">
+                                    <label for="totalPieces" class="form-label fw-semibold"><i
+                                            class="bi bi-123 text-primary me-1"></i>Total Pieces (จำนวนผลิตรวม)</label>
+                                    <input type="number" class="form-control" id="totalPieces" name="totalPieces"
+                                        min="0" placeholder="ระบุจำนวนผลิตรวม (ชิ้น)" />
+                                </div>
+                                <div class="mb-2">
+                                    <label for="netRunTime" class="form-label fw-semibold"><i
+                                            class="bi bi-stopwatch text-info me-1"></i>Net Run Time (วินาที)</label>
+                                    <input type="text" class="form-control bg-light fw-bold" id="netRunTime"
+                                        name="netRunTime" value="" readonly />
+                                </div>
+                                <div class="mb-2" id="actualDurationDisplay" style="display: none">
+                                    <span class="text-secondary"><i
+                                            class="bi bi-hourglass-split me-1"></i>ใช้เวลาทำงานจริง: <span
+                                            id="actualDurationText"></span></span>
+                                </div>
+                            </div>
+
+                            <!-- ===== Divider: Section ===== -->
+                            <div class="d-flex align-items-center my-4">
+                                <hr class="flex-grow-1 border-success border-2 opacity-50" />
+                                <span class="mx-3 fs-3 text-success"><i class="bi bi-emoji-smile-fill"></i></span>
+                                <hr class="flex-grow-1 border-success border-2 opacity-50" />
+                            </div>
+                            <!-- ========== Section: Quality Rate ========== -->
+                            <div class="mb-3 border rounded p-3 bg-white">
+                                <h5 class="fw-bold text-success mb-3"><i class="bi bi-emoji-smile me-1"></i>Quality Rate
+                                </h5>
+                                <div class="mb-2">
+                                    <label for="rejectPieces" class="form-label fw-semibold"><i
+                                            class="bi bi-x-octagon text-danger me-1"></i>Reject Pieces
+                                        (จำนวนของเสีย)</label>
+                                    <input type="number" class="form-control" id="rejectPieces" name="rejectPieces"
+                                        min="0" placeholder="ระบุจำนวนของเสีย (ชิ้น)" />
+                                </div>
+                                <div class="mb-2">
+                                    <label for="goodPieces" class="form-label fw-semibold"><i
+                                            class="bi bi-emoji-smile text-success me-1"></i>Good Pieces
+                                        (จำนวนของดี)</label>
+                                    <input type="number" class="form-control bg-light fw-bold" id="goodPieces"
+                                        name="goodPieces" readonly />
+                                </div>
+                            </div>
+
+                            <!-- ========== Form Action Buttons ========== -->
+                            <div class="d-flex flex-column flex-md-row gap-3 justify-content-center align-items-center mt-4 mb-2">
+                                <button type="submit" id="confirmCompleteBtn" class="btn btn-success btn-lg px-5 fw-bold">
+                                    <i class="bi bi-check-circle me-2"></i>บันทึก/ยืนยันจบงาน
+                                </button>
+                                <button type="reset" class="btn btn-outline-danger btn-lg px-5 fw-bold">
+                                    <i class="bi bi-x-circle me-2"></i>ล้างค่า
+                                </button>
+                            </div>
+
+    <!-- ========== OEE Calculation Summary Card ========== -->
+    <div class="card border-2 border-dark shadow-sm mb-4 mt-4" id="oeeSummaryCard">
+        <div class="card-header bg-dark bg-opacity-75 text-white">
+            <h5 class="mb-0"><i class="bi bi-bar-chart-line-fill me-2"></i>OEE Calculation</h5>
+        </div>
+        <div class="card-body bg-white">
+            <div class="row text-center g-3">
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold text-dark mb-1"><i class="bi bi-clock-history"></i> Availability</div>
+                    <span class="badge bg-dark fs-5 px-3 py-2" id="oeeAvailability">-</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold text-dark mb-1"><i class="bi bi-lightning-charge"></i> Performance</div>
+                    <span class="badge bg-dark fs-5 px-3 py-2" id="oeePerformance">-</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold text-dark mb-1"><i class="bi bi-emoji-smile"></i> Quality</div>
+                    <span class="badge bg-dark fs-5 px-3 py-2" id="oeeQuality">-</span>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="fw-bold text-dark mb-1"><i class="bi bi-star-fill"></i> OEE</div>
+                    <span class="badge bg-dark fs-5 px-3 py-2" id="oeeTotal">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+                            <script
+                                src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+                            <script src="confirm.js"></script>
+
+</body>
+
+</html>
