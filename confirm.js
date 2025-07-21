@@ -161,7 +161,27 @@ function updateSupportVariables() {
     document.getElementById('oeeAvailability').textContent = oeePlannedProductionTime > 0 ? pct(oeeAvailability) : '-';
     document.getElementById('oeePerformance').textContent = (oeeRunTime > 0 && oeeIdealCycleTime > 0 && oeeTotalCount > 0) ? pct(oeePerformance) : '-';
     document.getElementById('oeeQuality').textContent = (oeeTotalCount > 0) ? pct(oeeQuality) : '-';
-    document.getElementById('oeeTotal').textContent = (oeePlannedProductionTime > 0 && oeeRunTime > 0 && oeeIdealCycleTime > 0 && oeeTotalCount > 0) ? pct(oeeTotal) : '-';
+    // OEE badge color by value
+    const oeeTotalElem = document.getElementById('oeeTotal');
+    if (oeePlannedProductionTime > 0 && oeeRunTime > 0 && oeeIdealCycleTime > 0 && oeeTotalCount > 0) {
+        oeeTotalElem.textContent = pct(oeeTotal);
+        let colorClass = 'bg-danger';
+        if (oeeTotal >= 1) {
+            colorClass = 'bg-success'; // >= 100%
+        } else if (oeeTotal >= 0.85) {
+            colorClass = 'bg-primary'; // >= 85%
+        } else if (oeeTotal >= 0.6) {
+            colorClass = 'bg-warning text-dark'; // >= 60%
+        } else if (oeeTotal >= 0.4) {
+            colorClass = 'bg-orange text-dark'; // >= 40% (custom orange)
+        }
+        // Remove all bg-* classes first
+        oeeTotalElem.className = oeeTotalElem.className.replace(/bg-[^ ]+/g, '').replace(/text-dark/g, '').trim();
+        oeeTotalElem.className += ' ' + colorClass;
+    } else {
+        oeeTotalElem.textContent = '-';
+        oeeTotalElem.className = oeeTotalElem.className.replace(/bg-[^ ]+/g, '').replace(/text-dark/g, '').trim() + ' bg-dark';
+    }
     // Calculate actual duration at the top so it can be used everywhere
     const actualDuration = getActualDurationMinutes();
 

@@ -1,3 +1,8 @@
+/* Custom orange badge for OEE 40-59% */
+.bg-orange {
+    background-color: #fd7e14 !important;
+    color: #212529 !important;
+}
 
 #calendarWeekLabel:hover .chevron-top {
   color: #222;
