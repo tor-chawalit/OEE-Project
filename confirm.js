@@ -134,6 +134,24 @@ function getOvertime() {
 }
 
 function updateSupportVariables() {
+    // --- Shift Available Time ---
+    // เหลือเวลาว่างจากกะ = 540 - เวลาทำงานจริง (actual duration)
+    const shiftLength = 540;
+    const actualDurationForShift = getActualDurationMinutes();
+    let available = shiftLength - actualDurationForShift;
+    const shiftAvailableTimeDisplay = document.getElementById('shiftAvailableTimeDisplay');
+    const shiftAvailableTimeText = document.getElementById('shiftAvailableTimeText');
+    if (shiftAvailableTimeDisplay && shiftAvailableTimeText) {
+        if (actualDurationForShift > 0 && available >= 0) {
+            const h = Math.floor(available / 60);
+            const m = available % 60;
+            shiftAvailableTimeText.textContent = `${h} ชั่วโมง ${m} นาที`;
+            shiftAvailableTimeDisplay.style.display = '';
+        } else {
+            shiftAvailableTimeText.textContent = '-';
+            shiftAvailableTimeDisplay.style.display = 'none';
+        }
+    }
     // --- OEE Calculation ---
     // 1. Availability = Run Time / Planned Production Time
     // 2. Performance = (Ideal Cycle Time × Total Count) / Run Time
@@ -360,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const footer = document.getElementById('confirmFooter');
         if (footer) footer.style.display = '';
         const btn = document.getElementById('confirmCompleteBtn');
-        // เพิ่ม event handler สำหรับปุ่มยืนยันจบงาน (ตัวอย่างพื้นฐาน)
+        // เพิ่ม event handler สำหรับปุ่มยืนยัน (ตัวอย่างพื้นฐาน)
         if (btn) {
             btn.onclick = async function(e) {
                 e.preventDefault();
