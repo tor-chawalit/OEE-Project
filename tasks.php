@@ -43,12 +43,12 @@ if (isset($_GET['action'])) {
         echo $row ? json_encode($row) : json_encode(['error' => 'ไม่พบข้อมูลงาน']);
         exit;
     }
-    // ดึงงานที่ยังไม่เสร็จ
+    // ดึงงานทั้งหมด (รวมทั้งที่เสร็จแล้ว)
     if ($action === 'get_tasks') {
         $sql = "SELECT j.*, m.MachineName, d.DepartmentName FROM Jobs j
                 JOIN Machines m ON j.MachineID = m.MachineID
                 JOIN Departments d ON m.DepartmentID = d.DepartmentID
-                WHERE j.Status != 'completed' ORDER BY j.CreatedAt ASC";
+                ORDER BY j.CreatedAt ASC";
         $stmt = sqlsrv_query($conn, $sql);
         if ($stmt === false) {
             http_response_code(500);

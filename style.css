@@ -300,7 +300,24 @@
   cursor: pointer;
 }
 
-.time-slot .task-item {
+/* Calendar Cell Styles */
+.calendar-cell {
+  min-height: 48px;
+  border-right: 1px solid #f1f1f1;
+  border-bottom: 1px solid #f1f1f1;
+  background: #fff;
+  position: relative;
+  vertical-align: top;
+  padding: 2px;
+}
+
+.calendar-cell:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.time-slot .task-item,
+.calendar-cell .task-item {
   position: static;
   flex: 1 1 0;
   width: auto;
@@ -309,7 +326,8 @@
   margin-bottom: 0;
 }
 
-.time-slot .task-item:last-child {
+.time-slot .task-item:last-child,
+.calendar-cell .task-item:last-child {
   margin-right: 0;
 }
 
@@ -410,9 +428,18 @@
 }
 
 .task-item.completed {
-  background: #d4edda !important; /* เขียวอ่อน */
-  color: #155724 !important;     /* เขียวเข้ม */
-  border-left: 5px solid #28a745 !important; /* เขียว */
+  background: #cce7ff !important; /* ฟ้าอ่อน - รอยืนยัน */
+  color: #0056b3 !important;     /* ฟ้าเข้ม */
+  border-left: 5px solid #007bff !important; /* ฟ้า */
+  box-shadow: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+.task-item.cancelled {
+  background: #f8d7da !important; /* แดงอ่อน */
+  color: #721c24 !important;     /* แดงเข้ม */
+  border-left: 5px solid #dc3545 !important; /* แดง */
   box-shadow: none !important;
   opacity: 1 !important;
   animation: none !important;

@@ -135,27 +135,8 @@ class TaskManager {
     return [...tasks];
   }
   static getFilteredTasks() {
-    const deptFilter = document.getElementById("departmentFilter")?.value;
-    const dateFilter = document.getElementById("dateFilter")?.value;
-    const statusFilter = document.getElementById("statusFilter")?.value;
-    const keyword = document
-      .getElementById("keywordFilter")
-      ?.value?.trim()
-      .toLowerCase();
-    return this.getAllTasks().filter((task) => {
-      if (deptFilter && task.DepartmentName !== deptFilter) return false;
-      if (statusFilter && task.Status !== statusFilter) return false;
-      if (dateFilter) {
-        const taskDate = new Date(task.CreatedAt).toISOString().split("T")[0];
-        if (taskDate !== dateFilter) return false;
-      }
-      if (keyword) {
-        const lotNumber = (task.LotNumber || "").toLowerCase();
-        const machineName = (task.MachineName || "").toLowerCase();
-        if (!lotNumber.includes(keyword) && !machineName.includes(keyword)) return false;
-      }
-      return true;
-    });
+    // แสดงงานทั้งหมดโดยไม่มีการกรอง
+    return this.getAllTasks();
   }
   static async loadFromDB() {
     try {
@@ -345,22 +326,28 @@ class CalendarRenderer {
     const filteredTasks = TaskManager.getFilteredTasks();
     const calendarBody = document.getElementById("calendarBody");
     
+    // แสดงงานทั้งหมดโดยไม่มีการกรองใดๆ
     filteredTasks.forEach((task) => {
       // ถ้ามี StartTime และ EndTime ให้แสดงตามเวลาจริง
       if (task.StartTime && task.EndTime) {
         const taskStart = new Date(task.StartTime);
-        const taskEnd = new Date(task.EndTime);
+        
+        // ไม่ตรวจสอบช่วงเวลาเลย แสดงทุกงาน
+        // คำนวณวันของสัปดาห์ (จันทร์ = 0, อาทิตย์ = 6)
+        let dayIdx = taskStart.getDay() === 0 ? 6 : taskStart.getDay() - 1;
+        let startHour = taskStart.getHours();
+        
+        // ถ้าไม่อยู่ในสัปดาห์ปัจจุบัน ให้แสดงในวันนี้เวลา 08:00
         const weekStart = new Date(currentWeekStart);
         const weekEnd = new Date(currentWeekStart);
         weekEnd.setDate(weekEnd.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
         
-        // ตรวจสอบว่างานอยู่ในสัปดาห์ปัจจุบันหรือไม่
-        if (taskEnd < weekStart || taskStart > weekEnd) return;
-        
-        // คำนวณวันของสัปดาห์ (จันทร์ = 0, อาทิตย์ = 6)
-        const dayIdx = taskStart.getDay() === 0 ? 6 : taskStart.getDay() - 1;
-        const startHour = taskStart.getHours();
+        if (taskStart < weekStart || taskStart > weekEnd) {
+          const today = new Date();
+          dayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1;
+          startHour = 8;
+        }
         
         // หาเซลล์ที่จะแสดงงาน
         const cell = calendarBody.querySelector(`.calendar-cell[data-day="${dayIdx}"][data-hour="${startHour}"]`);
@@ -407,6 +394,7 @@ class CalendarRenderer {
     if (status === "planning") statusClass = "pending";
     else if (status === "in-progress") statusClass = "in-progress";
     else if (status === "completed") statusClass = "completed";
+    else if (status === "cancelled") statusClass = "cancelled";
     let taskClasses = `task-item ${statusClass}`;
     taskElement.className = taskClasses;
     taskElement.textContent = `${task.LotNumber || 'Job'} - ${task.MachineName || 'Machine'}`;
@@ -428,12 +416,12 @@ class ModalManager {
     } else if (task.Status === "in-progress") {
       statusText = "กำลังผลิต";
       statusColor = "warning";
-    } else if (task.Status === "waiting-confirm") {
-      statusText = "รอยืนยันจบงาน";
-      statusColor = "info";
     } else if (task.Status === "completed") {
-      statusText = "เสร็จสิ้นแล้ว";
-      statusColor = "success";
+      statusText = "เสร็จสิ้น - รอยืนยันครั้งสุดท้าย";
+      statusColor = "info";
+    } else if (task.Status === "cancelled") {
+      statusText = "ยกเลิก";
+      statusColor = "danger";
     }
     
     let detailHTML = `
@@ -465,8 +453,10 @@ class ModalManager {
             <button id="editTaskBtn" class="btn btn-warning"><i class="bi bi-pencil-square me-1"></i>แก้ไข</button>
             <button id="deleteTaskBtn" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i>ยกเลิก</button>
         `;
-    if (task.status === "waiting-confirm" || task.status === "in-progress") {
-      detailHTML += `<button id="finalConfirmBtn" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>ยืนยันจบงาน</button>`;
+    if (task.Status === "completed") {
+      detailHTML += `<button id="finalConfirmBtn" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>ยืนยันจบงานสุดท้าย</button>`;
+    } else if (task.Status === "in-progress") {
+      detailHTML += `<button id="completeTaskBtn" class="btn btn-info"><i class="bi bi-check-square me-1"></i>จบงาน</button>`;
     } else {
       detailHTML += `<button id="confirmTaskBtn" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>ยืนยันบันทึกงานนี้</button>`;
     }
@@ -527,12 +517,34 @@ class ModalManager {
           window.location.href = `confirm-complete.html?id=${encodeURIComponent(task.JobID)}`;
         };
       }
+      const completeTaskBtn = document.getElementById("completeTaskBtn");
+      if (completeTaskBtn) {
+        completeTaskBtn.onclick = async function (e) {
+          e.preventDefault();
+          if (confirm("คุณต้องการจบงานนี้ใช่หรือไม่?")) {
+            try {
+              const updatedTask = { ...task, Status: "completed" };
+              await TaskManager.updateTask(updatedTask);
+              await TaskManager.loadFromDB();
+              await CalendarRenderer.render();
+              showToast("จบงานสำเร็จ - รอการยืนยันครั้งสุดท้าย", "success");
+              bootstrap.Modal.getInstance(
+                document.getElementById("taskDetailModal")
+              ).hide();
+            } catch (error) {
+              console.error('Complete task error:', error);
+              showToast("เกิดข้อผิดพลาดในการจบงาน: " + error.message, "danger");
+            }
+          }
+        };
+      }
     }, 0);
     new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
   };
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // ไม่ต้องล้างฟิลเตอร์เพราะไม่มีการกรองแล้ว
   await CalendarRenderer.render();
 });
 
@@ -739,20 +751,20 @@ function setupAddTaskButton() {
 }
 document.addEventListener("DOMContentLoaded", setupAddTaskButton);
 
-// 3. ฟิลเตอร์ขั้นสูง: สถานะ + คำค้นหา (render calendar เมื่อเปลี่ยน filter)
-function setupFilterForm() {
-  [
-    "departmentFilter",
-    "dateFilter",
-    "statusFilter",
-    "keywordFilter",
-  ].forEach((id) => {
-    document.getElementById(id)?.addEventListener("input", function () {
-      CalendarRenderer.render();
-    });
-  });
-}
-document.addEventListener("DOMContentLoaded", setupFilterForm);
+// 3. ลบฟิลเตอร์ - ไม่ต้องการการกรอง
+// function setupFilterForm() {
+//   [
+//     "departmentFilter",
+//     "dateFilter",
+//     "statusFilter",
+//     "keywordFilter",
+//   ].forEach((id) => {
+//     document.getElementById(id)?.addEventListener("input", function () {
+//       CalendarRenderer.render();
+//     });
+//   });
+// }
+// document.addEventListener("DOMContentLoaded", setupFilterForm);
 
 // 4. เพิ่ม confirm dialog เมื่อกดปุ่ม 'ยกเลิก' ใน modal เพิ่มงานใหม่
 function setupCancelAddJobBtn() {
@@ -893,14 +905,23 @@ function setupDepartmentMachineEvents() {
 }
 document.addEventListener("DOMContentLoaded", setupDepartmentMachineEvents);
 
-// 8. Utility: clear all filters and rerender calendar
-function clearFilters() {
-  document.getElementById("departmentFilter").value = "";
-  document.getElementById("dateFilter").value = "";
-  document.getElementById("statusFilter").value = "";
-  document.getElementById("keywordFilter").value = "";
-  CalendarRenderer.render();
-}
+// 8. Utility: clear all filters and rerender calendar - ปิดการใช้งาน
+// function clearFilters() {
+//   document.getElementById("departmentFilter").value = "";
+//   document.getElementById("dateFilter").value = "";
+//   document.getElementById("statusFilter").value = "";
+//   document.getElementById("keywordFilter").value = "";
+//   CalendarRenderer.render();
+// }
+
+// เพิ่มฟังก์ชันล้างฟิลเตอร์เมื่อโหลดหน้า - ปิดการใช้งาน
+// function clearAllFiltersOnLoad() {
+//   // ล้างฟิลเตอร์เมื่อโหลดหน้าเพื่อแสดงงานทั้งหมด
+//   document.getElementById("departmentFilter").value = "";
+//   document.getElementById("dateFilter").value = "";
+//   document.getElementById("statusFilter").value = "";
+//   document.getElementById("keywordFilter").value = "";
+// }
 
 // 9. Toast utility for showing messages
 function showToast(msg, type = "success") {
@@ -925,8 +946,8 @@ function setupTooltips() {
 }
 document.addEventListener("DOMContentLoaded", setupTooltips);
 
-// 12. Expose clearFilters, showToast, showLoading to global (for use in HTML)
-window.clearFilters = clearFilters;
+// 12. Expose clearFilters (ปิดการใช้งาน), showToast, showLoading to global (for use in HTML)
+// window.clearFilters = clearFilters;
 window.showToast = showToast;
 window.showLoading = showLoading;
 

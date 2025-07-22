@@ -56,7 +56,7 @@ function getTaskIdFromUrl() {
     return params.get('id');
 }
 async function fetchTaskDetail(id) {
-    const res = await fetch(`tasks.php?action=get&id=${id}`);
+    const res = await fetch(`tasks.php?action=get&JobID=${id}`);
     if (!res.ok) throw new Error('ไม่พบข้อมูลงาน');
     return await res.json();
 }
@@ -64,10 +64,10 @@ function renderTaskDetail(task) {
     const statusMap = {
         'planning': { label: 'กำลังวางแผน', color: 'secondary', icon: 'bi-calendar2-week' },
         'in-progress': { label: 'กำลังดำเนินงาน', color: 'primary', icon: 'bi-play-circle' },
-        'waiting-confirm': { label: 'รอยืนยันจบงาน', color: 'warning', icon: 'bi-hourglass-split' },
-        'completed': { label: 'เสร็จสิ้น', color: 'success', icon: 'bi-check-circle' }
+        'completed': { label: 'รอยืนยันจบงาน', color: 'warning', icon: 'bi-hourglass-split' },
+        'cancelled': { label: 'ยกเลิก', color: 'danger', icon: 'bi-x-circle' }
     };
-    const status = statusMap[task.status] || { label: task.status || '', color: 'light', icon: 'bi-question-circle' };
+    const status = statusMap[task.Status] || { label: task.Status || '', color: 'light', icon: 'bi-question-circle' };
     function formatDateTime(dt) {
         if (!dt) return '';
         const d = new Date(dt.replace(' ', 'T'));
@@ -76,14 +76,14 @@ function renderTaskDetail(task) {
     }
     return `
     <dl class="row mb-0 text-dark">
-        <dt class="col-sm-4"><i class="bi bi-card-text text-info me-1"></i>ชื่องาน</dt><dd class="col-sm-8 fw-bold text-primary-emphasis">${task.JobTitle || ''}</dd>
-        <dt class="col-sm-4"><i class="bi bi-diagram-3 text-secondary me-1"></i>แผนก</dt><dd class="col-sm-8 text-dark">${task.Department || ''}</dd>
-        <dt class="col-sm-4"><i class="bi bi-cpu text-secondary me-1"></i>เครื่องจักร</dt><dd class="col-sm-8 text-dark">${task.MachineType || ''}</dd>
+        <dt class="col-sm-4"><i class="bi bi-card-text text-info me-1"></i>Job ID</dt><dd class="col-sm-8 fw-bold text-primary-emphasis">${task.JobID || ''}</dd>
+        <dt class="col-sm-4"><i class="bi bi-diagram-3 text-secondary me-1"></i>แผนก</dt><dd class="col-sm-8 text-dark">${task.DepartmentName || ''}</dd>
+        <dt class="col-sm-4"><i class="bi bi-cpu text-secondary me-1"></i>เครื่องจักร</dt><dd class="col-sm-8 text-dark">${task.MachineName || ''}</dd>
         <dt class="col-sm-4"><i class="bi bi-clock text-success me-1"></i>เวลาเริ่ม</dt><dd class="col-sm-8 text-dark">${formatDateTime(task.StartTime) || ''}</dd>
         <dt class="col-sm-4"><i class="bi bi-clock-history text-danger me-1"></i>เวลาสิ้นสุด</dt><dd class="col-sm-8 text-dark">${formatDateTime(task.EndTime) || ''}</dd>
         <dt class="col-sm-4"><i class="bi bi-upc-scan text-secondary me-1"></i>Lot Number</dt><dd class="col-sm-8 text-dark">${task.LotNumber || ''}</dd>
-        <dt class="col-sm-4"><i class="bi bi-123 text-secondary me-1"></i>Lot Size</dt><dd class="col-sm-8 text-dark">${task.LotSize || ''}</dd>
-        <dt class="col-sm-4"><i class="bi bi-box-seam text-secondary me-1"></i>จำนวนผลิต</dt><dd class="col-sm-8 text-dark">${task.ProducedQuantity || ''}</dd>
+        <dt class="col-sm-4"><i class="bi bi-123 text-secondary me-1"></i>Planned Lot Size</dt><dd class="col-sm-8 text-dark">${task.PlannedLotSize || ''}</dd>
+        <dt class="col-sm-4"><i class="bi bi-box-seam text-secondary me-1"></i>จำนวนผลิต</dt><dd class="col-sm-8 text-dark">${task.ActualLotSize || ''}</dd>
         <dt class="col-sm-4"><i class="bi bi-info-circle text-secondary me-1"></i>รายละเอียด</dt><dd class="col-sm-8 text-dark">${task.Details || ''}</dd>
         <dt class="col-sm-4"><i class="${status.icon} text-${status.color} me-1"></i>สถานะ</dt>
         <dd class="col-sm-8">
@@ -92,8 +92,46 @@ function renderTaskDetail(task) {
     </dl>
     `;
 }
-async function completeTask(id, Downtime, actualStartTime, actualEndTime) {
-    const goodProduct = document.getElementById('goodProduct').value;
+async function completeTask(id, downtime, actualStartTime, actualEndTime) {
+    // รวบรวมข้อมูลทั้งหมดจากฟอร์ม
+    const payload = {
+        JobID: id,
+        Status: 'completed',
+        ActualStartTime: actualStartTime,
+        ActualEndTime: actualEndTime,
+        Downtime: parseInt(downtime) || 0,
+        // ข้อมูล OEE
+        PlannedProductionTime: parseFloat(document.getElementById('plannedProductionTime')?.value) || 0,
+        OperatingTime: parseFloat(document.getElementById('operatingTime')?.value) || 0,
+        IdealRunRate: parseFloat(document.getElementById('idealRunRate')?.value) || 0,
+        TotalPieces: parseInt(document.getElementById('totalPieces')?.value) || 0,
+        GoodPieces: parseInt(document.getElementById('goodPieces')?.value) || 0,
+        RejectPieces: parseInt(document.getElementById('rejectPieces')?.value) || 0,
+        // คำนวณ OEE
+        OEE_Availability: 0,
+        OEE_Performance: 0,
+        OEE_Quality: 0,
+        OEE_Total: 0
+    };
+    
+    // คำนวณ OEE
+    if (payload.PlannedProductionTime > 0 && payload.OperatingTime > 0) {
+        payload.OEE_Availability = payload.OperatingTime / payload.PlannedProductionTime;
+    }
+    
+    // Performance = (Total Count / Run Time) / Ideal Run Rate  
+    const idealRunRate = parseFloat(document.getElementById('idealRunRate')?.value) || 0;
+    if (payload.OperatingTime > 0 && idealRunRate > 0 && payload.TotalPieces > 0) {
+        const actualRunRate = payload.TotalPieces / payload.OperatingTime;
+        payload.OEE_Performance = actualRunRate / idealRunRate;
+    }
+    
+    if (payload.TotalPieces > 0) {
+        payload.OEE_Quality = payload.GoodPieces / payload.TotalPieces;
+    }
+    
+    payload.OEE_Total = payload.OEE_Availability * payload.OEE_Performance * payload.OEE_Quality;
+    
     // Overtime logic
     const overtimeEnable = document.getElementById('overtimeEnable')?.checked;
     const overtimeValue = document.getElementById('overtime')?.value;
@@ -105,6 +143,7 @@ async function completeTask(id, Downtime, actualStartTime, actualEndTime) {
         payload.OvertimeEnable = false;
         payload.Overtime = 0;
     }
+    
     const res = await fetch('tasks.php?action=update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,14 +200,18 @@ function updateSupportVariables() {
     // Get values (use unique variable names)
     const oeePlannedProductionTime = parseFloat(document.getElementById('plannedProductionTime')?.value) || 0;
     const oeeRunTime = parseFloat(document.getElementById('operatingTime')?.value) || 0;
-    const oeeIdealCycleTime = parseFloat(document.getElementById('idealCycleTimeDisplay')?.value) || 0;
+    const oeeIdealRunRate = parseFloat(document.getElementById('idealRunRate')?.value) || 0;
     const oeeTotalCount = parseFloat(document.getElementById('totalPieces')?.value) || 0;
     const oeeGoodCount = parseFloat(document.getElementById('goodPieces')?.value) || 0;
 
     // Availability
     let oeeAvailability = (oeePlannedProductionTime > 0 && oeeRunTime > 0) ? (oeeRunTime / oeePlannedProductionTime) : 0;
-    // Performance
-    let oeePerformance = (oeeRunTime > 0 && oeeIdealCycleTime > 0 && oeeTotalCount > 0) ? ((oeeIdealCycleTime * oeeTotalCount) / oeeRunTime) : 0;
+    // Performance = (Total Count / Run Time) / Ideal Run Rate
+    let oeePerformance = 0;
+    if (oeeRunTime > 0 && oeeIdealRunRate > 0 && oeeTotalCount > 0) {
+        const actualRunRate = oeeTotalCount / oeeRunTime; // ชิ้น/นาที จริง
+        oeePerformance = actualRunRate / oeeIdealRunRate;
+    }
     // Quality
     let oeeQuality = (oeeTotalCount > 0 && oeeGoodCount >= 0) ? (oeeGoodCount / oeeTotalCount) : 0;
     // OEE
@@ -177,11 +220,11 @@ function updateSupportVariables() {
     // Show as percent, 2 decimals
     function pct(val) { return (val * 100).toFixed(2) + '%'; }
     document.getElementById('oeeAvailability').textContent = oeePlannedProductionTime > 0 ? pct(oeeAvailability) : '-';
-    document.getElementById('oeePerformance').textContent = (oeeRunTime > 0 && oeeIdealCycleTime > 0 && oeeTotalCount > 0) ? pct(oeePerformance) : '-';
+    document.getElementById('oeePerformance').textContent = (oeeRunTime > 0 && oeeIdealRunRate > 0 && oeeTotalCount > 0) ? pct(oeePerformance) : '-';
     document.getElementById('oeeQuality').textContent = (oeeTotalCount > 0) ? pct(oeeQuality) : '-';
     // OEE badge color by value
     const oeeTotalElem = document.getElementById('oeeTotal');
-    if (oeePlannedProductionTime > 0 && oeeRunTime > 0 && oeeIdealCycleTime > 0 && oeeTotalCount > 0) {
+    if (oeePlannedProductionTime > 0 && oeeRunTime > 0 && oeeIdealRunRate > 0 && oeeTotalCount > 0) {
         oeeTotalElem.textContent = pct(oeeTotal);
         let colorClass = 'bg-danger';
         if (oeeTotal >= 1) {
@@ -203,33 +246,21 @@ function updateSupportVariables() {
     // Calculate actual duration at the top so it can be used everywhere
     const actualDuration = getActualDurationMinutes();
 
-    // Ideal Cycle Time = 1 / Ideal Run Rate (นาที/ชิ้น)
-    const rate = parseFloat(document.getElementById('idealRunRate')?.value);
-    let cycleTime = '';
-    if (rate > 0) {
-      cycleTime = (1 / rate).toFixed(4); // แสดงทศนิยม 4 ตำแหน่ง
-    } else {
-      cycleTime = '';
+    // Actual Run Rate = Total Pieces / Operating Time (ชิ้น/นาที)
+    const totalPiecesVal = parseInt(document.getElementById('totalPieces')?.value, 10) || 0;
+    const operatingTimeVal = parseInt(document.getElementById('operatingTime')?.value, 10) || 0;
+    let actualRunRate = '';
+    if (operatingTimeVal > 0 && totalPiecesVal > 0) {
+        actualRunRate = (totalPiecesVal / operatingTimeVal).toFixed(2) + ' ชิ้น/นาที';
     }
-    const display = document.getElementById('idealCycleTimeDisplay');
-    if (display) display.value = cycleTime;
-    // Optional: set value to a hidden field for use elsewhere
-    let cycleTimeField = document.getElementById('cycleTime');
-    if (!cycleTimeField) {
-      cycleTimeField = document.createElement('input');
-      cycleTimeField.type = 'hidden';
-      cycleTimeField.id = 'cycleTime';
-      display?.parentNode?.appendChild(cycleTimeField);
-    }
-    cycleTimeField.value = cycleTime;
+    const actualRunRateDisplay = document.getElementById('actualRunRate');
+    if (actualRunRateDisplay) actualRunRateDisplay.value = actualRunRate;
 
-    // Net Run Time = Ideal Cycle Time (วินาที/ชิ้น) × Total Pieces
-    const totalPiecesForNet = parseInt(document.getElementById('totalPieces')?.value, 10) || 0;
+    // Net Run Time = Total Pieces / Ideal Run Rate (นาที)
+    const idealRunRateVal = parseFloat(document.getElementById('idealRunRate')?.value) || 0;
     let netRunTime = '';
-    if (cycleTime && !isNaN(Number(cycleTime)) && totalPiecesForNet > 0) {
-        netRunTime = (Number(cycleTime) * totalPiecesForNet).toFixed(2);
-    } else {
-        netRunTime = '';
+    if (idealRunRateVal > 0 && totalPiecesVal > 0) {
+        netRunTime = (totalPiecesVal / idealRunRateVal).toFixed(2) + ' นาที'; // เวลาที่ควรจะใช้
     }
     const netRunTimeDisplay = document.getElementById('netRunTime');
     if (netRunTimeDisplay) netRunTimeDisplay.value = netRunTime;
@@ -358,7 +389,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     try {
         const task = await fetchTaskDetail(id);
-        if (task.status !== 'waiting-confirm') {
+        if (task.Status !== 'completed') {
             showToast('งานนี้ยังไม่ถูกตั้งสถานะให้รอการยืนยันจบงาน', 'danger');
             setTimeout(() => { window.location = 'index.html'; }, 1300);
             return;
@@ -387,8 +418,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const actualEndTime = document.getElementById('actualEndTime')?.value || null;
                 try {
                     await completeTask(id, downtime, actualStartTime, actualEndTime);
-                    const oee = calculateOEE();
-                    showToast('ยืนยันจบงานสำเร็จ\nOEE: ' + oee + '%', 'success');
+                    // คำนวณ OEE เพื่อแสดงผล
+                    const oeeTotal = document.getElementById('oeeTotal')?.textContent || '0%';
+                    showToast('ยืนยันจบงานสำเร็จ\nOEE: ' + oeeTotal, 'success');
                     setTimeout(() => { window.location = 'index.html'; }, 1800);
                 } catch (err) {
                     showToast('เกิดข้อผิดพลาด: ' + err.message, 'danger');

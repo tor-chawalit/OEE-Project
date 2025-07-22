@@ -300,6 +300,7 @@
                                                 <label for="idealRunRate" class="form-label fw-bold text-info">
                                                     <i class="bi bi-speedometer2 me-1"></i>Ideal Run Rate
                                                 </label>
+                                                <p class="small text-muted mb-2">อัตราผลิตมาตรฐาน</p>
                                                 <div class="input-group">
                                                     <input type="number" class="form-control form-control-lg" id="idealRunRate" 
                                                            name="idealRunRate" min="1" placeholder="เช่น 10" required />
@@ -312,11 +313,12 @@
                                     <div class="col-md-6">
                                         <div class="card border-info border-2">
                                             <div class="card-body">
-                                                <label for="idealCycleTimeDisplay" class="form-label fw-bold text-info">
-                                                    <i class="bi bi-clock me-1"></i>Cycle Time
+                                                <label for="actualRunRate" class="form-label fw-bold text-info">
+                                                    <i class="bi bi-tachometer-alt me-1"></i>Actual Run Rate
                                                 </label>
+                                                <p class="small text-muted mb-2">อัตราผลิตจริง (คำนวณอัตโนมัติ)</p>
                                                 <input type="text" class="form-control form-control-lg bg-light fw-bold text-center" 
-                                                       id="idealCycleTimeDisplay" name="idealCycleTimeDisplay" readonly />
+                                                       id="actualRunRate" name="actualRunRate" readonly />
                                             </div>
                                         </div>
                                     </div>
@@ -420,7 +422,7 @@
                             </div>
 
                             <!-- Form Actions -->
-                            <div class="bg-light border-top py-4">
+                            <div class="bg-light border-top py-4" id="confirmFooter" style="display: none">
                                 <div class="container-fluid">
                                     <div class="row justify-content-center">
                                         <div class="col-md-8">
