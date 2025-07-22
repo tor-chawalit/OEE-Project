@@ -2,6 +2,12 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once 'db.php';
 
+// ตรวจสอบการเชื่อมต่อฐานข้อมูล
+if (!$conn) {
+    echo json_encode(['success' => false, 'message' => 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้']);
+    exit;
+}
+
 $input = json_decode(file_get_contents('php://input'), true);
 $username = trim($input['username'] ?? '');
 $password = $input['password'] ?? '';
@@ -14,29 +20,36 @@ if (!$username || !$password || !$fullname || !$email) {
 }
 
 // ตรวจสอบซ้ำ username หรือ email
-$sql = "SELECT id FROM users WHERE username = ? OR email = ?";
-$params = [$username, $email];
+
+$sql = "SELECT UserID FROM Users WHERE Username = ?";
+$params = [$username];
 $stmt = sqlsrv_query($conn, $sql, $params);
+
 if ($stmt === false) {
-    echo json_encode(['success' => false, 'message' => 'เกิดข้อผิดพลาด']);
+    error_log(print_r(sqlsrv_errors(), true));
+    echo json_encode(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการตรวจสอบชื่อผู้ใช้']);
     exit;
 }
+
 if (sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-    echo json_encode(['success' => false, 'message' => 'ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้แล้ว']);
+    echo json_encode(['success' => false, 'message' => 'ชื่อผู้ใช้นี้ถูกใช้แล้ว']);
     exit;
 }
 sqlsrv_free_stmt($stmt);
+
 
 // hash password
 $hash = password_hash($password, PASSWORD_DEFAULT);
 
 // insert user
-$sql = "INSERT INTO users (username, password, role, fullname, email, created_at)
-        VALUES (?, ?, ?, ?, ?, GETDATE())";
-$params = [$username, $hash, 'user', $fullname, $email];
+$sql = "INSERT INTO Users (Username, PasswordHash, Role, FullName) VALUES (?, ?, ?, ?)";
+$params = [$username, $hash, 'user', $fullname];
 $stmt = sqlsrv_query($conn, $sql, $params);
+
 if ($stmt === false) {
-    echo json_encode(['success' => false, 'message' => 'สมัครสมาชิกไม่สำเร็จ']);
+    // Log the error for debugging
+    error_log(print_r(sqlsrv_errors(), true));
+    echo json_encode(['success' => false, 'message' => 'สมัครสมาชิกไม่สำเร็จ เกิดข้อผิดพลาดบางอย่าง']);
     exit;
 }
 echo json_encode(['success' => true]);

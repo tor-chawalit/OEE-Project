@@ -26,7 +26,7 @@ if (!$username || !$password) {
     echo json_encode(['success' => false, 'message' => htmlspecialchars('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน')]);
     exit;
 }
-$sql = "SELECT id, username, password, role FROM users WHERE username = ?";
+$sql = "SELECT UserID, Username, PasswordHash, Role, FullName FROM Users WHERE Username = ?";
 $params = array($username);
 $stmt = sqlsrv_query($conn, $sql, $params);
 if ($stmt === false) {
@@ -34,10 +34,11 @@ if ($stmt === false) {
     exit;
 }
 $user = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
-if ($user && password_verify($password, $user['password'])) {
-    $_SESSION['user_id'] = $user['id'];
-    $_SESSION['username'] = $user['username'];
-    $_SESSION['role'] = $user['role'];
+if ($user && password_verify($password, $user['PasswordHash'])) {
+    $_SESSION['user_id'] = $user['UserID'];
+    $_SESSION['username'] = $user['Username'];
+    $_SESSION['role'] = $user['Role'];
+    $_SESSION['fullname'] = $user['FullName'];
     echo json_encode(['success' => true, 'message' => htmlspecialchars('เข้าสู่ระบบสำเร็จ')]);
 } else {
     echo json_encode(['success' => false, 'message' => htmlspecialchars('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')]);

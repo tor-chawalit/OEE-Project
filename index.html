@@ -122,10 +122,12 @@
                     aria-label="เลือกแผนก"
                   >
                     <option value="">ทุกแผนก</option>
-                    <option value="production">แผนก A</option>
-                    <option value="quality">แผนก B</option>
-                    <option value="maintenance">แผนก C</option>
-                    <option value="packaging">แผนก D</option>
+                    <option value="Screen">Screen</option>
+                    <option value="Laser">Laser</option>
+                    <option value="Injection Molding">Injection Molding</option>
+                    <option value="Packing">Packing</option>
+                    <option value="Packing Line">Packing Line</option>
+                    <option value="Capping & Mixing">Capping & Mixing</option>
                   </select>
                 </div>
                 <div class="col-6 col-md-3 col-lg-2">
@@ -154,6 +156,17 @@
                     id="keywordFilter"
                     placeholder="ค้นหาชื่องาน/รายละเอียด"
                     aria-label="ค้นหาชื่องานหรือรายละเอียด"
+                  />
+                </div>
+                <div class="col-6 col-md-3 col-lg-2">
+                  <label class="form-label visually-hidden" for="dateFilter"
+                    >วันที่</label
+                  >
+                  <input
+                    type="date"
+                    class="form-control form-control-sm"
+                    id="dateFilter"
+                    aria-label="เลือกวันที่"
                   />
                 </div>
                 <div class="col-12 col-md-auto">
@@ -264,11 +277,12 @@
                     required
                   >
                     <option value="">เลือกแผนก</option>
-                    <option value="screen">สกรีน</option>
-                    <option value="laser">เลเซอร์</option>
-                    <option value="packaging">บรรจุ</option>
-                    <option value="packing">แพ็กกิ้ง</option>
-                    <option value="filtermix">กรอง&amp;Mix</option>
+                    <option value="1">Screen</option>
+                    <option value="2">Laser</option>
+                    <option value="3">Injection Molding</option>
+                    <option value="4">Packing</option>
+                    <option value="5">Packing Line</option>
+                    <option value="6">Capping & Mixing</option>
                   </select>
                 </div>
                 <div class="col-lg-6 col-md-6 mb-3">
@@ -298,7 +312,7 @@
               <!-- วันที่และเวลา -->
               <div class="row">
                 <div class="col-lg-4 col-md-6 mb-3">
-                  <label class="form-label">วันที่ *</label>
+                  <label class="form-label">วันที่ <span class="text-danger">*</span></label>
                   <input
                     type="date"
                     class="form-control"
@@ -308,12 +322,12 @@
                   />
                 </div>
                 <div class="col-lg-4 col-md-3 mb-3">
-                  <label class="form-label">เวลาเริ่ม *</label>
+                  <label class="form-label">เวลาเริ่ม <span class="text-danger">*</span></label>
                   <div class="row g-1">
                     <div class="col-6">
                       <select
                         class="form-select"
-                        id="start   Hour"
+                        id="startHour"
                         name="startHour"
                         required
                       >
@@ -340,7 +354,7 @@
                       >
                         <option value="">นาที</option>
                         <script>
-                          for (let m = 0; m < 60; m++) {
+                          for (let m = 0; m < 60; m += 15) {
                             document.write(
                               `<option value='${m
                                 .toString()
@@ -355,7 +369,7 @@
                   </div>
                 </div>
                 <div class="col-lg-4 col-md-3 mb-3">
-                  <label class="form-label">เวลาสิ้นสุด *</label>
+                  <label class="form-label">เวลาสิ้นสุด <span class="text-danger">*</span></label>
                   <div class="row g-1">
                     <div class="col-6">
                       <select
@@ -387,7 +401,7 @@
                       >
                         <option value="">นาที</option>
                         <script>
-                          for (let m = 0; m < 60; m++) {
+                          for (let m = 0; m < 60; m += 15) {
                             document.write(
                               `<option value='${m
                                 .toString()
@@ -402,7 +416,7 @@
                   </div>
                 </div>
               </div>
-              <!-- Production Section -->
+              <!-- Lot Number และ Lot Size -->
               <div class="row">
                 <div class="col-lg-6 col-md-6 mb-3">
                   <label class="form-label"
@@ -435,55 +449,15 @@
                     type="number"
                     class="form-control"
                     id="lotSize"
-                    name="LotSize"
+                    name="lotSize"
                     min="1"
                     required
                     placeholder="จำนวนผลิตใน Lot นี้"
                   />
                 </div>
               </div>
-              <!-- ชื่องานและจำนวนผลิต -->
-              <div class="row">
-                <div class="col-lg-8 col-md-8 mb-3">
-                  <label class="form-label">ชื่องาน *</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="jobTitle"
-                    name="jobTitle"
-                    required
-                    placeholder="เช่น ผลิตน้ำดื่ม, ตรวจสอบคุณภาพ"
-                  />
-                </div>
-                <div class="col-lg-4 col-md-4 mb-3">
-                  <label class="form-label"
-                    >จำนวนผลิต (Production Quantity)</label
-                  >
-                  <div class="input-group">
-                    <input
-                      type="number"
-                      class="form-control"
-                      id="productionQuantity"
-                      name="productionQuantity"
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                    />
-                    <span class="input-group-text">หน่วย</span>
-                  </div>
-                </div>
-              </div>
-              <!-- รายละเอียด -->
-              <div class="mb-3">
-                <label class="form-label">รายละเอียด</label>
-                <textarea
-                  class="form-control"
-                  id="description"
-                  name="description"
-                  rows="2"
-                  placeholder="รายละเอียดเพิ่มเติม"
-                ></textarea>
-              </div>
+              
+              <!-- Modal Footer -->
               <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
                 <button
                   type="button"
