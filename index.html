@@ -1,111 +1,72 @@
 <!DOCTYPE html>
 <html lang="th">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0"
-    />
-    <meta name="description" content="ระบบปฏิทินควบคุมเครื่องจักร" />
-    <meta name="theme-color" content="#007bff" />
-    <title>ระบบควบคุมเครื่องจักร</title>
 
-    <!-- Bootstrap 5 CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <!-- Bootstrap Icons -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css" />
-    <!-- Animate.css for animations -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
-    />
-  </head>
-  <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-dark bg-primary navbar-expand-lg">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="#">
-          <i class="bi bi-gear-fill me-1 d-none d-sm-inline"></i>
-          <span class="d-none d-md-inline">ระบบควบคุมเครื่องจักร</span>
-          <span class="d-md-none">ระบบปฏิทินควบคุมเครื่องจักร</span>
-        </a>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0" />
+  <meta name="description" content="ระบบปฏิทินควบคุมเครื่องจักร" />
+  <meta name="theme-color" content="#007bff" />
+  <title>ระบบควบคุมเครื่องจักร</title>
 
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarMenu"
-          aria-controls="navbarMenu"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarMenu">
-          <div class="d-flex flex-column flex-lg-row gap-2 ms-auto">
-            <a
-              href="index.html"
-              class="btn btn-outline-light align-items-center"
-            >
-              <i class="bi bi-calendar3 me-1"></i
-              ><span class="d-none d-sm-inline">ปฏิทินงาน</span>
-            </a>
-            <a
-              href="dashboard.html"
-              class="btn btn-outline-light align-items-center"
-            >
-              <i class="bi bi-bar-chart me-1"></i
-              ><span class="d-none d-sm-inline">Dashboard</span>
-            </a>
-            <button class="btn btn-light" onclick="location.reload()">
-              <i class="bi bi-arrow-clockwise me-1"></i
-              ><span class="d-none d-sm-inline">รีเฟรช</span>
-            </button>
-            <a
-              href="history.html"
-              class="btn btn-outline-warning align-items-center"
-            >
-              <i class="bi bi-clock-history"></i
-              ><span class="d-none d-md-inline ms-1">ประวัติงาน</span>
-            </a>
-            <button
-              class="btn btn-danger d-flex align-items-center"
-              id="logoutBtn"
-              type="button"
-            >
-              <i class="bi bi-box-arrow-right me-1"></i
-              ><span class="d-none d-sm-inline">ออกจากระบบ</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </nav>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css" />
+  <!-- Animate.css for animations -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+</head>
 
-    <!-- Main Container -->
-    <div class="container-fluid p-3">
-      <!-- Add Task Button (เฉพาะหน้านี้) -->
-      <div class="row mb-3">
-        <div class="col-12 d-flex justify-content-end">
-          <button
-            class="btn btn-success btn-lg shadow rounded-pill px-4 py-2 "
-            style="font-size: 1.25rem; font-weight: 600; letter-spacing: 0.5px"
-            aria-label="เพิ่มงานใหม่"
-            tabindex="0"
-          >
-            <i class="bi bi-plus-circle me-2"></i>เพิ่มงานใหม่
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-dark bg-primary navbar-expand-lg">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-gear-fill me-1 d-none d-sm-inline"></i>
+        <span class="d-none d-md-inline">ระบบควบคุมเครื่องจักร</span>
+        <span class="d-md-none">ระบบปฏิทินควบคุมเครื่องจักร</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMenu"
+        aria-controls="navbarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMenu">
+        <div class="d-flex flex-column flex-lg-row gap-2 ms-auto">
+          <a href="index.html" class="btn btn-outline-light align-items-center">
+            <i class="bi bi-calendar3 me-1"></i><span class="d-none d-sm-inline">ปฏิทินงาน</span>
+          </a>
+          <a href="dashboard.html" class="btn btn-outline-light align-items-center">
+            <i class="bi bi-bar-chart me-1"></i><span class="d-none d-sm-inline">Dashboard</span>
+          </a>
+          <button class="btn btn-light" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise me-1"></i><span class="d-none d-sm-inline">รีเฟรช</span>
+          </button>
+          <a href="history.html" class="btn btn-outline-warning align-items-center">
+            <i class="bi bi-clock-history"></i><span class="d-none d-md-inline ms-1">ประวัติงาน</span>
+          </a>
+          <button class="btn btn-danger d-flex align-items-center" id="logoutBtn" type="button">
+            <i class="bi bi-box-arrow-right me-1"></i><span class="d-none d-sm-inline">ออกจากระบบ</span>
           </button>
         </div>
       </div>
-      <!-- Filter Section - ปิดการใช้งาน -->
-      <!-- <div class="row mb-3">
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="container-fluid p-3">
+    <!-- Add Task Button (เฉพาะหน้านี้) -->
+    <div class="row mb-3">
+      <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-success btn-lg shadow rounded-pill px-4 py-2 "
+          style="font-size: 1.25rem; font-weight: 600; letter-spacing: 0.5px" aria-label="เพิ่มงานใหม่" tabindex="0">
+          <i class="bi bi-plus-circle me-2"></i>เพิ่มงานใหม่
+        </button>
+      </div>
+    </div>
+    <!-- Filter Section - ปิดการใช้งาน -->
+    <!-- <div class="row mb-3">
         <div class="col-12">
           <div class="card card-sm border-0 bg-light shadow-sm">
             <div class="card-body py-2 px-3">
@@ -186,350 +147,256 @@
           </div>
         </div>
       </div> -->
-      <!-- Dashboard Section -->
-      <div class="row">
-        <div class="col-12">
-          <div class="card">
-            <div
-              class="card-header d-flex flex-column flex-md-row justify-content-between align-items-center gap-2"
-            >
-              <div
-                id="calendarWeekLabel"
-                class="fw-bold fs-5 d-flex flex-row align-items-center gap-2"
-                style="flex-wrap: nowrap; white-space: nowrap"
-              >
-              </div>
-              <div class="btn-group w-100 w-md-auto">
-                <button
-                  class="btn btn-sm btn-outline-secondary"
-                  onclick="previousWeek()"
-                >
-                  <i class="bi bi-chevron-left"></i
-                  ><span class="d-none d-lg-inline"> ก่อนหน้า</span>
-                </button>
-                <button class="btn btn-sm btn-primary" onclick="goToToday()">
-                  <span class="d-none d-sm-inline">วันนี้</span
-                  ><span class="d-sm-none">วันนี้</span>
-                </button>
-                <button
-                  class="btn btn-sm btn-outline-secondary"
-                  onclick="nextWeek()"
-                >
-                  <span class="d-none d-lg-inline">ถัดไป </span
-                  ><i class="bi bi-chevron-right"></i>
-                </button>
-              </div>
+    <!-- Dashboard Section -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <div id="calendarWeekLabel" class="fw-bold fs-5 d-flex flex-row align-items-center gap-2"
+              style="flex-wrap: nowrap; white-space: nowrap">
             </div>
-            <div class="card-body p-0">
-              <div id="weeklyCalendar" class="calendar-grid table-responsive">
-                <table
-                  class="table table-bordered mb-0"
-                  style="table-layout: fixed"
-                >
-                  <thead>
-                    <tr>
-                      <th style="width: 60px; background: #f8f9fa">เวลา</th>
-                      <th class="text-center">จันทร์</th>
-                      <th class="text-center">อังคาร</th>
-                      <th class="text-center">พุธ</th>
-                      <th class="text-center">พฤหัส</th>
-                      <th class="text-center">ศุกร์</th>
-                      <th class="text-center">เสาร์</th>
-                      <th class="text-center">อาทิตย์</th>
-                    </tr>
-                  </thead>
-                  <tbody id="calendarBody">
-                    <!-- JS จะ render row เวลาแต่ละชั่วโมง เช่น 08:00, 09:00 ... -->
-                  </tbody>
-                </table>
-              </div>
+            <div class="btn-group w-100 w-md-auto">
+              <button class="btn btn-sm btn-outline-secondary" onclick="previousWeek()">
+                <i class="bi bi-chevron-left"></i><span class="d-none d-lg-inline"> ก่อนหน้า</span>
+              </button>
+              <button class="btn btn-sm btn-primary" onclick="goToToday()">
+                <span class="d-none d-sm-inline">วันนี้</span><span class="d-sm-none">วันนี้</span>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="nextWeek()">
+                <span class="d-none d-lg-inline">ถัดไป </span><i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div id="weeklyCalendar" class="calendar-grid table-responsive">
+              <table class="table table-bordered mb-0" style="table-layout: fixed">
+                <thead>
+                  <tr>
+                    <th style="width: 60px; background: #f8f9fa">เวลา</th>
+                    <th class="text-center">จันทร์</th>
+                    <th class="text-center">อังคาร</th>
+                    <th class="text-center">พุธ</th>
+                    <th class="text-center">พฤหัส</th>
+                    <th class="text-center">ศุกร์</th>
+                    <th class="text-center">เสาร์</th>
+                    <th class="text-center">อาทิตย์</th>
+                  </tr>
+                </thead>
+                <tbody id="calendarBody">
+                  <!-- JS จะ render row เวลาแต่ละชั่วโมง เช่น 08:00, 09:00 ... -->
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Add Job Modal -->
-    <div class="modal fade" id="addJobModal" tabindex="-1">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">เพิ่มงานใหม่</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <form id="addJobForm" autocomplete="off">
-              <!-- เปลี่ยน method/action เป็น JS ดักไว้ ดไม่ submit ไป tasks.php ทันที -->
-              <!-- แผนกและเครื่องจักร -->
-              <div class="row">
-                <div class="col-lg-6 col-md-6 mb-3">
-                  <label class="form-label"
-                    >แผนก <span class="text-danger">*</span></label
-                  >
-                  <select
-                    class="form-select"
-                    id="department"
-                    name="department"
-                    required
-                  >
-                    <option value="">เลือกแผนก</option>
-                    <option value="1">Screen</option>
-                    <option value="2">Laser</option>
-                    <option value="3">Injection Molding</option>
-                    <option value="4">Packing</option>
-                    <option value="5">Packing Line</option>
-                    <option value="6">Capping & Mixing</option>
-                  </select>
-                </div>
-                <div class="col-lg-6 col-md-6 mb-3">
-                  <label class="form-label"
-                    >เครื่องจักร <span class="text-danger">*</span></label>
-                  <div id="machineCheckboxGroup" class="d-flex flex-column gap-2"></div>
-                </div>
+  <!-- Add Job Modal -->
+  <div class="modal fade" id="addJobModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">เพิ่มงานใหม่</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addJobForm" autocomplete="off">
+            <!-- เปลี่ยน method/action เป็น JS ดักไว้ ดไม่ submit ไป tasks.php ทันที -->
+            <!-- แผนกและเครื่องจักร -->
+            <div class="row">
+              <div class="col-lg-6 col-md-6 mb-3">
+                <label class="form-label">แผนก <span class="text-danger">*</span></label>
+                <select class="form-select" id="department" name="department" required>
+                  <option value="">เลือกแผนก</option>
+                  <option value="1">Screen</option>
+                  <option value="2">Laser</option>
+                  <option value="3">Injection Molding</option>
+                  <option value="4">Packing</option>
+                  <option value="5">Packing Line</option>
+                  <option value="6">Capping & Mixing</option>
+                </select>
               </div>
-              <!-- สถานะงาน -->
-              <div class="row">
-                <div class="col-lg-6 col-md-6 mb-3">
-                  <label class="form-label"
-                    >สถานะงาน <span class="text-danger">*</span></label
-                  >
-                  <select
-                    class="form-select"
-                    id="status"
-                    name="status"
-                    required
-                  >
-                    <option value="planning">กำลังวางแผน</option>
-                    <option value="in-progress">กำลังดำเนินงาน</option>
-                    <option value="completed">เสร็จสิ้น</option>
-                    <option value="cancelled">ยกเลิก</option>
-                  </select>
-                </div>
+              <div class="col-lg-6 col-md-6 mb-3">
+                <label class="form-label">เครื่องจักร <span class="text-danger">*</span></label>
+                <div id="machineCheckboxGroup" class="d-flex flex-column gap-2"></div>
               </div>
-              <!-- วันที่และเวลา -->
-              <div class="row">
-                <div class="col-lg-4 col-md-6 mb-3">
-                  <label class="form-label">วันที่ <span class="text-danger">*</span></label>
-                  <input
-                    type="date"
-                    class="form-control"
-                    id="workDate"
-                    name="workDate"
-                    required
-                  />
-                </div>
-                <div class="col-lg-4 col-md-3 mb-3">
-                  <label class="form-label">เวลาเริ่ม <span class="text-danger">*</span></label>
-                  <div class="row g-1">
-                    <div class="col-6">
-                      <select
-                        class="form-select"
-                        id="startHour"
-                        name="startHour"
-                        required
-                      >
-                        <option value="">ชม.</option>
-                        <script>
-                          for (let h = 0; h < 24; h++) {
-                            document.write(
-                              `<option value='${h
-                                .toString()
-                                .padStart(2, "0")}'>${h
+            </div>
+            <!-- สถานะงาน -->
+            <div class="row">
+              <div class="col-lg-6 col-md-6 mb-3">
+                <label class="form-label">สถานะงาน <span class="text-danger">*</span></label>
+                <select class="form-select" id="status" name="status" required>
+                  <option value="planning">กำลังวางแผน</option>
+                  <option value="in-progress">กำลังดำเนินงาน</option>
+                  <option value="completed">เสร็จสิ้น</option>
+                  <option value="cancelled">ยกเลิก</option>
+                </select>
+              </div>
+            </div>
+            <!-- วันที่และเวลา -->
+            <div class="row">
+              <div class="col-lg-4 col-md-6 mb-3">
+                <label class="form-label">วันที่ <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="workDate" name="workDate" required />
+              </div>
+              <div class="col-lg-4 col-md-3 mb-3">
+                <label class="form-label">เวลาเริ่ม <span class="text-danger">*</span></label>
+                <div class="row g-1">
+                  <div class="col-6">
+                    <select class="form-select" id="startHour" name="startHour" required>
+                      <option value="">ชม.</option>
+                      <script>
+                        for (let h = 0; h < 24; h++) {
+                          document.write(
+                            `<option value='${h
+                              .toString()
+                              .padStart(2, "0")}'>${h
                                 .toString()
                                 .padStart(2, "0")}</option>`
-                            );
-                          }
-                        </script>
-                      </select>
-                    </div>
-                    <div class="col-6">
-                      <select
-                        class="form-select"
-                        id="startMinute"
-                        name="startMinute"
-                        required
-                      >
-                        <option value="">นาที</option>
-                        <script>
-                          for (let m = 0; m < 60; m += 15) {
-                            document.write(
-                              `<option value='${m
-                                .toString()
-                                .padStart(2, "0")}'>${m
-                                .toString()
-                                .padStart(2, "0")}</option>`
-                            );
-                          }
-                        </script>
-                      </select>
-                    </div>
+                          );
+                        }
+                      </script>
+                    </select>
                   </div>
-                </div>
-                <div class="col-lg-4 col-md-3 mb-3">
-                  <label class="form-label">เวลาสิ้นสุด <span class="text-danger">*</span></label>
-                  <div class="row g-1">
-                    <div class="col-6">
-                      <select
-                        class="form-select"
-                        id="endHour"
-                        name="endHour"
-                        required
-                      >
-                        <option value="">ชม.</option>
-                        <script>
-                          for (let h = 0; h < 24; h++) {
-                            document.write(
-                              `<option value='${h
-                                .toString()
-                                .padStart(2, "0")}'>${h
+                  <div class="col-6">
+                    <select class="form-select" id="startMinute" name="startMinute" required>
+                      <option value="">นาที</option>
+                      <script>
+                        for (let m = 0; m < 60; m += 15) {
+                          document.write(
+                            `<option value='${m
+                              .toString()
+                              .padStart(2, "0")}'>${m
                                 .toString()
                                 .padStart(2, "0")}</option>`
-                            );
-                          }
-                        </script>
-                      </select>
-                    </div>
-                    <div class="col-6">
-                      <select
-                        class="form-select"
-                        id="endMinute"
-                        name="endMinute"
-                        required
-                      >
-                        <option value="">นาที</option>
-                        <script>
-                          for (let m = 0; m < 60; m += 15) {
-                            document.write(
-                              `<option value='${m
-                                .toString()
-                                .padStart(2, "0")}'>${m
-                                .toString()
-                                .padStart(2, "0")}</option>`
-                            );
-                          }
-                        </script>
-                      </select>
-                    </div>
+                          );
+                        }
+                      </script>
+                    </select>
                   </div>
                 </div>
               </div>
-              <!-- Lot Number และ Lot Size -->
-              <div class="row">
-                <div class="col-lg-6 col-md-6 mb-3">
-                  <label class="form-label"
-                    >Lot Number <span class="text-danger">*</span>
-                    <i
-                      class="bi bi-info-circle"
-                      data-bs-toggle="tooltip"
-                      title="เช่น Lot-20250709-01"
-                    ></i
-                  ></label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="lotNumber"
-                    name="lotNumber"
-                    required
-                    placeholder="เช่น Lot-20250709-01"
-                  />
-                </div>
-                <div class="col-lg-6 col-md-6 mb-3">
-                  <label class="form-label"
-                    >Lot Size <span class="text-danger">*</span>
-                    <i
-                      class="bi bi-info-circle"
-                      data-bs-toggle="tooltip"
-                      title="จำนวนที่ต้องผลิตใน Lot นี้"
-                    ></i
-                  ></label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="lotSize"
-                    name="lotSize"
-                    min="1"
-                    required
-                    placeholder="จำนวนผลิตใน Lot นี้"
-                  />
+              <div class="col-lg-4 col-md-3 mb-3">
+                <label class="form-label">เวลาสิ้นสุด <span class="text-danger">*</span></label>
+                <div class="row g-1">
+                  <div class="col-6">
+                    <select class="form-select" id="endHour" name="endHour" required>
+                      <option value="">ชม.</option>
+                      <script>
+                        for (let h = 0; h < 24; h++) {
+                          document.write(
+                            `<option value='${h
+                              .toString()
+                              .padStart(2, "0")}'>${h
+                                .toString()
+                                .padStart(2, "0")}</option>`
+                          );
+                        }
+                      </script>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <select class="form-select" id="endMinute" name="endMinute" required>
+                      <option value="">นาที</option>
+                      <script>
+                        for (let m = 0; m < 60; m += 15) {
+                          document.write(
+                            `<option value='${m
+                              .toString()
+                              .padStart(2, "0")}'>${m
+                                .toString()
+                                .padStart(2, "0")}</option>`
+                          );
+                        }
+                      </script>
+                    </select>
+                  </div>
                 </div>
               </div>
-              
-              <!-- Modal Footer -->
-              <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
-                <button
-                  type="button"
-                  class="btn btn-secondary flex-fill flex-sm-grow-0"
-                  id="cancelAddJobBtn"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-primary flex-fill flex-sm-grow-0"
-                >
-                  <i class="bi bi-save me-1"></i>เพิ่มงาน
-                </button>
+            </div>
+            <!-- ชื่องานและ Lot Number -->
+            <div class="row">
+              <div class="col-lg-6 col-md-6 mb-3">
+                <label class="form-label">ชื่องาน <span class="text-danger">*</span>
+                  <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="ชื่อหรือรหัสของงานที่จะผลิต"></i></label>
+                <input type="text" class="form-control" id="jobName" name="jobName" required
+                  placeholder="เช่น iPhone 15 Pro Max - Gold" />
               </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+              <div class="col-lg-6 col-md-6 mb-3">
+                <label class="form-label">Lot Number <span class="text-danger">*</span>
+                  <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="เช่น Lot-20250709-01"></i></label>
+                <input type="text" class="form-control" id="lotNumber" name="lotNumber" required
+                  placeholder="เช่น Lot-20250709-01" />
+              </div>
+            </div>
+            <!-- Lot Size -->
+            <div class="row">
+              <div class="col-lg-6 col-md-6 mb-3">
+                <label class="form-label">Lot Size <span class="text-danger">*</span>
+                  <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="จำนวนที่ต้องผลิตใน Lot นี้"></i></label>
+                <input type="number" class="form-control" id="lotSize" name="lotSize" min="1" required
+                  placeholder="จำนวนผลิตใน Lot นี้" />
+              </div>
+            </div>
+            
+            <!-- รายละเอียดงาน -->
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label">รายละเอียดงาน
+                  <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="รายละเอียดเพิ่มเติมของงาน (ถ้ามี)"></i></label>
+                <textarea class="form-control" id="details" name="details" rows="3" 
+                  placeholder="ระบุรายละเอียดเพิ่มเติมของงาน..."></textarea>
+              </div>
+            </div>
 
-    <!-- Task Detail Modal -->
-    <div class="modal fade" id="taskDetailModal" tabindex="-1">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="taskDetailTitle">รายละเอียดงาน</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body" id="taskDetailBody"></div>
-          <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
-            <button
-              type="button"
-              class="btn btn-secondary flex-fill flex-sm-grow-0"
-              data-bs-dismiss="modal"
-            >
-              ปิด
-            </button>
-          </div>
+            <!-- Modal Footer -->
+            <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
+              <button type="button" class="btn btn-secondary flex-fill flex-sm-grow-0" id="cancelAddJobBtn">
+                ยกเลิก
+              </button>
+              <button type="submit" class="btn btn-primary flex-fill flex-sm-grow-0">
+                <i class="bi bi-save me-1"></i>เพิ่มงาน
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Toast Container -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
-      <div
-        id="mainToast"
-        class="toast align-items-center text-bg-success border-0"
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
-      >
-        <div class="d-flex">
-          <div class="toast-body" id="mainToastBody">ดำเนินการสำเร็จ</div>
-          <button
-            type="button"
-            class="btn-close btn-close-white me-2 m-auto"
-            data-bs-dismiss="toast"
-            aria-label="Close"
-          ></button>
+  <!-- Task Detail Modal -->
+  <div class="modal fade" id="taskDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="taskDetailTitle">รายละเอียดงาน</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="taskDetailBody"></div>
+        <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
+          <button type="button" class="btn btn-secondary flex-fill flex-sm-grow-0" data-bs-dismiss="modal">
+            ปิด
+          </button>
         </div>
       </div>
     </div>
-    <!-- Loading Spinner Overlay -->
-    <div
-      id="loadingOverlay"
-      style="
+  </div>
+
+  <!-- Toast Container -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+    <div id="mainToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="mainToastBody">ดำเนินการสำเร็จ</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+  <!-- Loading Spinner Overlay -->
+  <div id="loadingOverlay" style="
         display: none;
         position: fixed;
         z-index: 2000;
@@ -540,19 +407,14 @@
         background: rgba(255, 255, 255, 0.6);
         align-items: center;
         justify-content: center;
-      "
-    >
-      <div
-        class="spinner-border text-primary"
-        style="width: 3rem; height: 3rem"
-        role="status"
-        aria-label="กำลังโหลดข้อมูล..."
-      ></div>
-    </div>
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Main logic for this page -->
-    <script src="index.js"></script>
-  </body>
-</html>
+      ">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem" role="status"
+      aria-label="กำลังโหลดข้อมูล..."></div>
+  </div>
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Main logic for this page -->
+  <script src="index.js"></script>
+</body>
 
+</html>

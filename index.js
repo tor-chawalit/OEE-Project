@@ -397,7 +397,7 @@ class CalendarRenderer {
     else if (status === "cancelled") statusClass = "cancelled";
     let taskClasses = `task-item ${statusClass}`;
     taskElement.className = taskClasses;
-    taskElement.textContent = `${task.LotNumber || 'Job'} - ${task.MachineName || 'Machine'}`;
+    taskElement.textContent = `${task.JobName || task.LotNumber || 'Job'} - ${task.MachineName || 'Machine'}`;
     return taskElement;
   }
 }
@@ -431,6 +431,7 @@ class ModalManager {
                       <strong>สถานะ:</strong>
                       <span class="badge bg-${statusColor}">${statusText}</span>
                     </p>
+                    <p><strong>ชื่องาน:</strong> ${task.JobName || "-"}</p>
                     <p><strong>แผนก:</strong> ${task.DepartmentName || "-"}</p>
                     <p><strong>เครื่องจักร:</strong> ${task.MachineName || "-"}</p>
                     <p><strong>Lot Number:</strong> ${task.LotNumber || "-"}</p>
@@ -578,8 +579,11 @@ function fillAddJobFormWithTask(task) {
     renderMachineCheckboxes(task.DepartmentID.toString());
   }
   
+  // เปิดใช้ JobName
+  setField("jobName", task.JobName || "");
   setField("lotNumber", task.LotNumber || "");
   setField("lotSize", task.PlannedLotSize || "");
+  setField("details", task.Details || "");
   setField("status", task.Status || "planning");
   
   // เซ็ตวันที่และเวลา ถ้ามี
@@ -661,13 +665,16 @@ function setupAddJobFormHandler() {
       }
       
       const taskData = {
+        JobName: formData.get("jobName") || "", // เปิดใช้
         LotNumber: formData.get("lotNumber"),
         PlannedLotSize: LotSize,
         MachineID: parseInt(selectedMachine.value, 10),
+        DepartmentID: parseInt(formData.get("department"), 10),
         Status: formData.get("status") || "planning",
-        CreatedByUserID: 1, // ต้องแก้ไขให้ใช้ UserID จริงจาก session
+        Details: formData.get("details") || "",
+        CreatedByUserID: 1,
         StartTime: startISO,
-        EndTime: end.toISOString().substring(0, 19), // ตัด milliseconds ออก
+        EndTime: end.toISOString().substring(0, 19),
       };
       
       if (window.selectedEditTask && window.selectedEditTask.JobID) {
@@ -805,37 +812,37 @@ document.addEventListener("DOMContentLoaded", setupLogoutBtn);
 // Machine mapping by DepartmentID (ใช้ MachineID ตามฐานข้อมูลใหม่)
 const machineOptions = {
   1: [
-    { id: 1, text: "UV Dryer" },
-    { id: 2, text: "Screen Printer" },
-    { id: 3, text: "Other Dryer" }
+    { id: 1, text: "เครื่องอบ UV" },
+    { id: 2, text: "เครื่องสกรีน" },
+    { id: 3, text: "เครื่องอบลมร้อน" }
   ],
   2: [
-    { id: 4, text: "Inkjet Printer" },
-    { id: 5, text: "CO2 Laser" }
+    { id: 4, text: "เครื่อง Inkjet" },
+    { id: 5, text: "เครื่องเลเซอร์ CO2" }
   ],
   3: [],
   4: [
-    { id: 6, text: "Automatic Packing Machine" },
-    { id: 7, text: "4-Head Packing Machine" },
-    { id: 8, text: "2-Head Packing Machine" },
-    { id: 9, text: "Automatic Capper" },
-    { id: 10, text: "Capper 1" },
-    { id: 11, text: "Capper 2" },
-    { id: 12, text: "Button Rolling Machine" },
-    { id: 13, text: "Dokkala Machine" },
-    { id: 14, text: "Automatic Sachet Packing Machine" },
-    { id: 15, text: "4-Line Bag Tying Machine" }
+    { id: 6, text: "เครื่องบรรจุอัตโนมัติ" },
+    { id: 7, text: "เครื่องบรรจุ 4 หัว" },
+    { id: 8, text: "เครื่องบรรจุ 2 หัว" },
+    { id: 9, text: "เครื่องหมุนฝาอัตโนมัติ" },
+    { id: 10, text: "เครื่องหมุนฝา 1" },
+    { id: 11, text: "เครื่องหมุนฝา 2" },
+    { id: 12, text: "เครื่องคลิ้มหัวสเปรย์" },
+    { id: 13, text: "เครื่องตอกคอลล่า" },
+    { id: 14, text: "เครื่องบรรจุซองอัตโนมัติ" },
+    { id: 15, text: "เครื่องอุโมงค์ชริ้งฟิล์ม" }
   ],
   5: [
-    { id: 16, text: "Sealing Machine 1" },
-    { id: 17, text: "Sealing Machine 2" },
-    { id: 18, text: "Sealing Machine 3" },
-    { id: 19, text: "Sealing Machine 4" },
-    { id: 20, text: "Automatic Sealing Machine" }
+    { id: 16, text: "เครื่องห่อฟิล์ม 1" },
+    { id: 17, text: "เครื่องห่อฟิล์ม 2" },
+    { id: 18, text: "เครื่องห่อฟิล์ม 3" },
+    { id: 19, text: "เครื่องห่อฟิล์ม 4" },
+    { id: 20, text: "เครื่องห่อฟิล์มอัตโนมัติ" }
   ],
   6: [
-    { id: 21, text: "Capping Machine" },
-    { id: 22, text: "Mixing Machine" }
+    { id: 21, text: "เครื่องกรอง" },
+    { id: 22, text: "เครื่องผสม" }
   ]
 };
 

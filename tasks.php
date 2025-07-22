@@ -113,41 +113,23 @@ if (isset($_GET['action'])) {
     if ($action === 'add') {
         $data = json_decode(file_get_contents('php://input'), true);
         
-        // ตรวจสอบว่ามีคอลัมน์ StartTime และ EndTime หรือไม่
-        $checkColumns = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Jobs' AND COLUMN_NAME IN ('StartTime', 'EndTime')";
-        $checkStmt = sqlsrv_query($conn, $checkColumns);
-        $hasDateTime = false;
-        if ($checkStmt) {
-            $columnCount = 0;
-            while ($row = sqlsrv_fetch_array($checkStmt, SQLSRV_FETCH_ASSOC)) {
-                $columnCount++;
-            }
-            $hasDateTime = ($columnCount >= 2);
-        }
+        // สร้าง SQL statement พร้อมข้อมูลทุกคอลัมน์
+        $fields = ['JobName', 'LotNumber', 'PlannedLotSize', 'MachineID', 'DepartmentID', 'Status', 'Details', 'StartTime', 'EndTime', 'CreatedByUserID'];
+        $params = [
+            $data['JobName'] ?? '',
+            $data['LotNumber'] ?? '',
+            (int)($data['PlannedLotSize'] ?? 0),
+            (int)($data['MachineID'] ?? 0),
+            (int)($data['DepartmentID'] ?? 0),
+            $data['Status'] ?? 'planning',
+            $data['Details'] ?? '',
+            $data['StartTime'] ?? null,
+            $data['EndTime'] ?? null,
+            (int)($data['CreatedByUserID'] ?? 0)
+        ];
         
-        if ($hasDateTime) {
-            // ใช้ SQL ที่มี StartTime และ EndTime
-            $sql = "INSERT INTO Jobs (LotNumber, PlannedLotSize, MachineID, Status, CreatedByUserID, StartTime, EndTime) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            $params = [
-                $data['LotNumber'] ?? '',
-                (int)($data['PlannedLotSize'] ?? 0),
-                (int)($data['MachineID'] ?? 0),
-                $data['Status'] ?? 'planning',
-                (int)($data['CreatedByUserID'] ?? 0),
-                $data['StartTime'] ?? null,
-                $data['EndTime'] ?? null
-            ];
-        } else {
-            // ใช้ SQL แบบเก่าที่ไม่มี StartTime และ EndTime
-            $sql = "INSERT INTO Jobs (LotNumber, PlannedLotSize, MachineID, Status, CreatedByUserID) VALUES (?, ?, ?, ?, ?)";
-            $params = [
-                $data['LotNumber'] ?? '',
-                (int)($data['PlannedLotSize'] ?? 0),
-                (int)($data['MachineID'] ?? 0),
-                $data['Status'] ?? 'planning',
-                (int)($data['CreatedByUserID'] ?? 0)
-            ];
-        }
+        $placeholders = str_repeat('?,', count($fields) - 1) . '?';
+        $sql = "INSERT INTO Jobs (" . implode(', ', $fields) . ") VALUES ($placeholders)";
         
         $stmt = sqlsrv_query($conn, $sql, $params);
         if ($stmt === false) {
@@ -189,21 +171,9 @@ if (isset($_GET['action'])) {
         
         $fields = [];
         $params = [];
-        // ตรวจสอบว่ามีคอลัมน์ StartTime และ EndTime หรือไม่
-        $checkColumns = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Jobs' AND COLUMN_NAME IN ('StartTime', 'EndTime')";
-        $checkStmt = sqlsrv_query($conn, $checkColumns);
-        $hasDateTime = false;
-        if ($checkStmt) {
-            $columnCount = 0;
-            while ($row = sqlsrv_fetch_array($checkStmt, SQLSRV_FETCH_ASSOC)) {
-                $columnCount++;
-            }
-            $hasDateTime = ($columnCount >= 2);
-        }
         
-        $updatable = $hasDateTime ? 
-            ['LotNumber', 'PlannedLotSize', 'MachineID', 'Status', 'StartTime', 'EndTime'] : 
-            ['LotNumber', 'PlannedLotSize', 'MachineID', 'Status'];
+        // รายการฟิลด์ที่สามารถอัปเดตได้
+        $updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'MachineID', 'Status', 'StartTime', 'EndTime', 'Details', 'DepartmentID'];
             
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
@@ -211,6 +181,11 @@ if (isset($_GET['action'])) {
                 $params[] = $data[$field];
             }
         }
+        
+        // เพิ่ม debug logging
+        error_log('DEBUG: Update JobID=' . $jobId);
+        error_log('DEBUG: Update fields: ' . print_r($fields, true));
+        error_log('DEBUG: Update params: ' . print_r($params, true));
         
         if (empty($fields)) {
             http_response_code(400);
@@ -221,10 +196,15 @@ if (isset($_GET['action'])) {
         $sql = "UPDATE Jobs SET ".implode(", ", $fields)." WHERE JobID=?";
         $params[] = $jobId;
         
+        // เพิ่ม debug SQL
+        error_log('DEBUG: Update SQL: ' . $sql);
+        
         $stmt = sqlsrv_query($conn, $sql, $params);
         if ($stmt === false) {
+            $errors = sqlsrv_errors();
+            error_log('DEBUG: Update SQL Error: ' . print_r($errors, true));
             http_response_code(500);
-            echo json_encode(['error' => sqlsrv_errors()]);
+            echo json_encode(['error' => 'Update failed', 'details' => $errors]);
             exit;
         }
         

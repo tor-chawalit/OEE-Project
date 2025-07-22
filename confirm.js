@@ -77,6 +77,7 @@ function renderTaskDetail(task) {
     return `
     <dl class="row mb-0 text-dark">
         <dt class="col-sm-4"><i class="bi bi-card-text text-info me-1"></i>Job ID</dt><dd class="col-sm-8 fw-bold text-primary-emphasis">${task.JobID || ''}</dd>
+        <dt class="col-sm-4"><i class="bi bi-briefcase text-primary me-1"></i>ชื่องาน</dt><dd class="col-sm-8 text-dark">${task.JobName || ''}</dd>
         <dt class="col-sm-4"><i class="bi bi-diagram-3 text-secondary me-1"></i>แผนก</dt><dd class="col-sm-8 text-dark">${task.DepartmentName || ''}</dd>
         <dt class="col-sm-4"><i class="bi bi-cpu text-secondary me-1"></i>เครื่องจักร</dt><dd class="col-sm-8 text-dark">${task.MachineName || ''}</dd>
         <dt class="col-sm-4"><i class="bi bi-clock text-success me-1"></i>เวลาเริ่ม</dt><dd class="col-sm-8 text-dark">${formatDateTime(task.StartTime) || ''}</dd>
