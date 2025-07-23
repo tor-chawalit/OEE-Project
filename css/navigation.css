@@ -1,0 +1,411 @@
+/**
+ * Enhanced Navigation Styles
+ * Shared styles for navigation component across all pages
+ */
+
+/* =====================================
+   NAVIGATION BAR STYLES
+   ===================================== */
+
+.navbar.bg-gradient {
+  background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.navbar.sticky-top {
+  z-index: 1030;
+}
+
+/* Brand Styles */
+.navbar-brand {
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.navbar-brand:hover {
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.navbar-brand:hover .brand-icon {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(180deg);
+}
+
+.brand-icon.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.brand-text {
+  flex: 1;
+}
+
+.brand-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: white;
+  margin: 0;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+/* =====================================
+   NAVIGATION LINKS
+   ===================================== */
+
+.nav-link-enhanced {
+  position: relative;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  margin: 0 4px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9) !important;
+  padding: 0.5rem 1rem;
+}
+
+.nav-link-enhanced:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  color: white !important;
+}
+
+.nav-link-enhanced.active {
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  color: white !important;
+}
+
+.nav-link-enhanced::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: #ffc107;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-link-enhanced.active::after,
+.nav-link-enhanced:hover::after {
+  width: 80%;
+}
+
+/* =====================================
+   USER PROFILE SECTION
+   ===================================== */
+
+.user-profile-link {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 25px;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  color: white !important;
+  text-decoration: none;
+}
+
+.user-profile-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  color: white !important;
+  text-decoration: none;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.user-profile-link:hover .user-avatar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* =====================================
+   DROPDOWN MENUS
+   ===================================== */
+
+.dropdown-menu {
+  border-radius: 12px;
+  padding: 0.5rem 0;
+  min-width: 200px;
+  border: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  animation: fadeInDown 0.3s ease;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  margin: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  color: #495057;
+}
+
+.dropdown-item:hover {
+  background: rgba(13, 110, 253, 0.1);
+  transform: translateX(4px);
+  color: #0d6efd;
+}
+
+.dropdown-item.text-danger:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.dropdown-item i {
+  width: 20px;
+  text-align: center;
+}
+
+.dropdown-header {
+  padding: 1rem 1.5rem 0.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.5rem;
+}
+
+.dropdown-divider {
+  margin: 0.5rem 1rem;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* =====================================
+   MOBILE RESPONSIVE STYLES
+   ===================================== */
+
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    margin-top: 1rem;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+  }
+  
+  .navbar-nav {
+    padding: 0.5rem 0;
+  }
+  
+  .nav-link-enhanced {
+    margin: 0.25rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+  }
+  
+  .user-profile-link {
+    justify-content: flex-start;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    background: rgba(255, 255, 255, 0.15);
+  }
+  
+  .brand-subtitle {
+    display: none !important;
+  }
+
+  .dropdown-menu {
+    position: static !important;
+    transform: none !important;
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0.5rem 0;
+    backdrop-filter: none;
+  }
+
+  .dropdown-item {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  .dropdown-header {
+    color: rgba(255, 255, 255, 0.7);
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .dropdown-divider {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .navbar-brand .brand-title {
+    font-size: 1rem;
+  }
+
+  .nav-link-enhanced span {
+    font-size: 0.9rem;
+  }
+
+  .dropdown-item {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* =====================================
+   ACCESSIBILITY ENHANCEMENTS
+   ===================================== */
+
+.nav-link-enhanced:focus,
+.user-profile-link:focus,
+.dropdown-item:focus {
+  outline: 2px solid #ffc107;
+  outline-offset: 2px;
+}
+
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .navbar.bg-gradient {
+    background: #000080 !important;
+    border-bottom: 2px solid #ffffff;
+  }
+
+  .nav-link-enhanced,
+  .user-profile-link {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .nav-link-enhanced.active {
+    border-color: #ffc107;
+    background: #ffc107;
+    color: #000 !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .navbar-brand,
+  .nav-link-enhanced,
+  .user-profile-link,
+  .dropdown-item,
+  .brand-icon {
+    transition: none;
+  }
+
+  .brand-icon.loading {
+    animation: none;
+  }
+
+  .dropdown-menu {
+    animation: none;
+  }
+}
+
+/* =====================================
+   LOADING STATES
+   ===================================== */
+
+.nav-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ffc107, transparent);
+  animation: loading-bar 1.5s infinite;
+}
+
+@keyframes loading-bar {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* =====================================
+   NOTIFICATION STYLES
+   ===================================== */
+
+.nav-notification {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 1060;
+  max-width: 350px;
+  min-width: 250px;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.nav-notification.alert-info {
+  background: rgba(13, 202, 240, 0.95);
+  color: white;
+}
+
+.nav-notification.alert-success {
+  background: rgba(25, 135, 84, 0.95);
+  color: white;
+}
+
+.nav-notification.alert-warning {
+  background: rgba(255, 193, 7, 0.95);
+  color: #000;
+}
+
+.nav-notification.alert-danger {
+  background: rgba(220, 53, 69, 0.95);
+  color: white;
+}

@@ -113,12 +113,12 @@ if (isset($_GET['action'])) {
     if ($action === 'add') {
         $data = json_decode(file_get_contents('php://input'), true);
         
-        // สร้าง SQL statement พร้อมข้อมูลทุกคอลัมน์
-        $fields = ['JobName', 'LotNumber', 'PlannedLotSize', 'MachineID', 'DepartmentID', 'Status', 'Details', 'StartTime', 'EndTime', 'CreatedByUserID'];
+        $fields = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'MachineID', 'DepartmentID', 'Status', 'Details', 'StartTime', 'EndTime', 'CreatedByUserID'];
         $params = [
             $data['JobName'] ?? '',
             $data['LotNumber'] ?? '',
             (int)($data['PlannedLotSize'] ?? 0),
+            (int)($data['ActualOutput'] ?? 0),
             (int)($data['MachineID'] ?? 0),
             (int)($data['DepartmentID'] ?? 0),
             $data['Status'] ?? 'planning',
@@ -172,9 +172,8 @@ if (isset($_GET['action'])) {
         $fields = [];
         $params = [];
         
-        // รายการฟิลด์ที่สามารถอัปเดตได้
-        $updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'MachineID', 'Status', 'StartTime', 'EndTime', 'Details', 'DepartmentID'];
-            
+        // รายการฟิลด์ที่สามารถอัปเดตได้ (ยกเว้น JobName ชั่วคราว)
+$updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'MachineID', 'Status', 'StartTime', 'EndTime', 'Details', 'DepartmentID'];
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
                 $fields[] = "$field=?";

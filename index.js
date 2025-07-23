@@ -1,12 +1,12 @@
 // Department mapping for display in modals and details
 // Department mapping by ID (ตามฐานข้อมูลใหม่)
 const DEPARTMENTS = {
-  1: "Screen",
-  2: "Laser",
-  3: "Injection Molding",
-  4: "Packing",
-  5: "Packing Line",
-  6: "Capping & Mixing"
+  1: "สกรีน",
+  2: "เลเซอร์",
+  3: "ล้างบรรจุภัณฑ์",
+  4: "บรรจุ",
+  5: "แพ็กกิ้ง",
+  6: "กรอง&Mix"
 };
 
 //Configuration
@@ -16,6 +16,425 @@ const CONFIG = {
   STORAGE_KEY: "tasks",
   AUTO_SAVE: true,
 };
+
+// Multi-step Form Management
+class FormStepManager {
+  constructor() {
+    this.currentStep = 1;
+    this.totalSteps = 3;
+    this.initialized = false;
+  }
+
+  init() {
+    if (this.initialized) return;
+    
+    // ตรวจสอบให้แน่ใจว่า DOM โหลดเสร็จแล้ว
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.setupEventListeners());
+    } else {
+      this.setupEventListeners();
+    }
+    
+    this.initialized = true;
+  }
+
+  setupEventListeners() {
+    console.log('Setting up FormStepManager event listeners...');
+    
+    // ค้นหาปุ่มต่างๆ
+    const nextBtn = document.getElementById('nextStepBtn');
+    const prevBtn = document.getElementById('prevStepBtn');
+    const submitBtn = document.getElementById('submitJobBtn'); // Changed to correct ID
+
+    console.log('Next button:', nextBtn);
+    console.log('Prev button:', prevBtn);
+    console.log('Submit button:', submitBtn);
+
+    // Setup next button
+    if (nextBtn) {
+      nextBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Next button clicked, current step:', this.currentStep);
+        this.nextStep();
+      });
+      console.log('Next button event listener added');
+    } else {
+      console.error('Next button not found!');
+    }
+
+    // Setup previous button  
+    if (prevBtn) {
+      prevBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Previous button clicked, current step:', this.currentStep);
+        this.prevStep();
+      });
+      console.log('Previous button event listener added');
+    } else {
+      console.log('Previous button not found (OK for step 1)');
+    }
+
+    // Setup submit button
+    if (submitBtn) {
+      submitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Submit button clicked');
+        // Validate last step before submit
+        if (this.validateStep(this.currentStep)) {
+          // Trigger form submit
+          const form = document.getElementById('addJobForm');
+          if (form) {
+            form.dispatchEvent(new Event('submit'));
+          }
+        }
+      });
+      console.log('Submit button event listener added');
+    } else {
+      console.log('Submit button not found (OK if not on last step)');
+    }
+    
+    // Duration calculation
+    this.setupDurationCalculation();
+    
+    // Real-time updates
+    this.setupRealTimeUpdates();
+
+    // Initialize display
+    this.updateStepDisplay();
+    console.log('FormStepManager initialization complete');
+  }
+
+  nextStep() {
+    console.log(`Attempting to go to next step. Current: ${this.currentStep}, Total: ${this.totalSteps}`);
+    
+    if (this.validateStep(this.currentStep)) {
+      if (this.currentStep < this.totalSteps) {
+        this.currentStep++;
+        console.log(`Moving to step ${this.currentStep}`);
+        this.updateStepDisplay();
+      } else {
+        console.log('Already at last step');
+      }
+    } else {
+      console.log('Validation failed for current step');
+    }
+  }
+
+  prevStep() {
+    console.log(`Attempting to go to previous step. Current: ${this.currentStep}`);
+    
+    if (this.currentStep > 1) {
+      this.currentStep--;
+      console.log(`Moving to step ${this.currentStep}`);
+      this.updateStepDisplay();
+    } else {
+      console.log('Already at first step');
+    }
+  }
+
+  updateStepDisplay() {
+    console.log(`Updating step display for step ${this.currentStep}`);
+    
+    // Update step indicators
+    document.querySelectorAll('.step').forEach((step, index) => {
+      const stepNum = index + 1;
+      step.classList.remove('active', 'completed');
+      
+      if (stepNum < this.currentStep) {
+        step.classList.add('completed');
+        console.log(`Step indicator ${stepNum} marked as completed`);
+      } else if (stepNum === this.currentStep) {
+        step.classList.add('active');
+        console.log(`Step indicator ${stepNum} marked as active`);
+      }
+    });
+
+    // Update progress line
+    const progressLine = document.querySelector('.progress-line');
+    if (progressLine) {
+      progressLine.className = `progress-line step-${this.currentStep}`;
+      console.log(`Progress line updated to step-${this.currentStep}`);
+    }
+
+    // Update form steps - Use display instead of class
+    document.querySelectorAll('.form-step').forEach((step, index) => {
+      const stepNum = index + 1;
+      if (stepNum === this.currentStep) {
+        step.style.display = 'block';
+        console.log(`Form step ${stepNum} shown`);
+      } else {
+        step.style.display = 'none';
+        console.log(`Form step ${stepNum} hidden`);
+      }
+    });
+
+    // Update navigation buttons
+    const prevBtn = document.getElementById('prevStepBtn');
+    const nextBtn = document.getElementById('nextStepBtn');
+    const submitBtn = document.getElementById('submitJobBtn'); // Changed from 'submitBtn'
+
+    console.log('Navigation buttons:', { prevBtn, nextBtn, submitBtn });
+
+    if (prevBtn) {
+      prevBtn.style.display = this.currentStep > 1 ? 'inline-block' : 'none';
+      console.log(`Previous button ${this.currentStep > 1 ? 'shown' : 'hidden'}`);
+    }
+
+    if (this.currentStep === this.totalSteps) {
+      if (nextBtn) {
+        nextBtn.style.display = 'none';
+        console.log('Next button hidden (last step)');
+      }
+      if (submitBtn) {
+        submitBtn.style.display = 'inline-block';
+        console.log('Submit button shown (last step)');
+      }
+    } else {
+      if (nextBtn) {
+        nextBtn.style.display = 'inline-block';
+        console.log('Next button shown');
+      }
+      if (submitBtn) {
+        submitBtn.style.display = 'none';
+        console.log('Submit button hidden');
+      }
+    }
+  }
+
+  validateStep(step) {
+    console.log(`Validating step ${step}`);
+    
+    const currentStepElement = document.querySelector(`.form-step[data-step="${step}"]`);
+    if (!currentStepElement) {
+      console.log(`Step element not found for step ${step}, assuming valid`);
+      return true; // ถ้าไม่มี step element ให้ถือว่าผ่าน
+    }
+
+    const requiredFields = currentStepElement.querySelectorAll('[required]');
+    let isValid = true;
+
+    console.log(`Found ${requiredFields.length} required fields in step ${step}`);
+
+    requiredFields.forEach((field, index) => {
+      const fieldValue = field.value ? field.value.trim() : '';
+      console.log(`Field ${index + 1} (${field.name || field.id}): "${fieldValue}"`);
+      
+      if (!fieldValue) {
+        field.classList.add('is-invalid');
+        isValid = false;
+        console.log(`Field ${field.name || field.id} is invalid`);
+      } else {
+        field.classList.remove('is-invalid');
+      }
+    });
+
+    // Special validation for each step
+    if (step === 1) {
+      // Validate department and machine selection
+      const departmentSelect = document.getElementById('department');
+      const selectedMachine = document.querySelector('#machineCheckboxGroup input[type="radio"]:checked');
+      
+      console.log('Department selected:', departmentSelect ? departmentSelect.value : 'none');
+      console.log('Machine selected:', selectedMachine ? selectedMachine.value : 'none');
+      
+      if (!departmentSelect || !departmentSelect.value) {
+        isValid = false;
+        console.log('Department validation failed');
+        if (departmentSelect) departmentSelect.classList.add('is-invalid');
+      }
+      
+      if (!selectedMachine) {
+        showToast('กรุณาเลือกเครื่องจักร', 'warning');
+        isValid = false;
+        console.log('Machine validation failed');
+      }
+    }
+
+    if (step === 2) {
+      // Validate job details
+      const jobName = document.getElementById('jobName');
+      const lotNumber = document.getElementById('lotNumber');
+      const lotSize = document.getElementById('lotSize');
+      
+      if (jobName && !jobName.value.trim()) {
+        jobName.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      if (lotNumber && !lotNumber.value.trim()) {
+        lotNumber.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      if (lotSize && (!lotSize.value || parseInt(lotSize.value) <= 0)) {
+        lotSize.classList.add('is-invalid');
+        isValid = false;
+      }
+    }
+
+    if (step === 3) {
+      // Validate time settings
+      const workDate = document.getElementById('workDate');
+      const startHour = document.getElementById('startHour');
+      const startMinute = document.getElementById('startMinute');
+      const endHour = document.getElementById('endHour');
+      const endMinute = document.getElementById('endMinute');
+      
+      const timeFields = [workDate, startHour, startMinute, endHour, endMinute];
+      timeFields.forEach(field => {
+        if (field && !field.value) {
+          field.classList.add('is-invalid');
+          isValid = false;
+        }
+      });
+    }
+
+    if (!isValid) {
+      showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'warning');
+    }
+
+    console.log(`Step ${step} validation result:`, isValid);
+    return isValid;
+  }
+
+  setupDurationCalculation() {
+    const startHour = document.getElementById('startHour');
+    const startMinute = document.getElementById('startMinute');
+    const endHour = document.getElementById('endHour');
+    const endMinute = document.getElementById('endMinute');
+    const durationDisplay = document.getElementById('durationDisplay');
+
+    const calculateDuration = () => {
+      if (startHour.value && startMinute.value && endHour.value && endMinute.value) {
+        const startTime = new Date();
+        startTime.setHours(parseInt(startHour.value), parseInt(startMinute.value), 0, 0);
+        
+        const endTime = new Date();
+        endTime.setHours(parseInt(endHour.value), parseInt(endMinute.value), 0, 0);
+        
+        if (endTime <= startTime) {
+          endTime.setDate(endTime.getDate() + 1);
+        }
+        
+        const diffMs = endTime - startTime;
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        
+        if (durationDisplay) {
+          durationDisplay.textContent = `${hours} ชั่วโมง ${minutes} นาที`;
+        }
+      }
+    };
+
+    [startHour, startMinute, endHour, endMinute].forEach(element => {
+      if (element) {
+        element.addEventListener('change', calculateDuration);
+      }
+    });
+  }
+
+  setupRealTimeUpdates() {
+    // Update current date time
+    const updateDateTime = () => {
+      const now = new Date();
+      const dateTimeElement = document.getElementById('currentDateTime');
+      if (dateTimeElement) {
+        dateTimeElement.textContent = now.toLocaleString('th-TH', {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',  
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+    };
+
+    updateDateTime();
+    setInterval(updateDateTime, 30000); // Update every 30 seconds
+    
+    // Update status counts
+    this.updateStatusCounts();
+  }
+
+  updateStatusCounts() {
+    const tasks = TaskManager.getAllTasks();
+    const counts = {
+      planning: 0,
+      'in-progress': 0,
+      completed: 0,
+      cancelled: 0
+    };
+
+    tasks.forEach(task => {
+      if (counts.hasOwnProperty(task.Status)) {
+        counts[task.Status]++;
+      }
+    });
+
+    // Update count displays
+    const planningCountEl = document.getElementById('planningCount');
+    const inProgressCountEl = document.getElementById('inProgressCount');
+    const completedCountEl = document.getElementById('completedCount');  
+    const cancelledCountEl = document.getElementById('cancelledCount');
+
+    if (planningCountEl) planningCountEl.textContent = counts.planning;
+    if (inProgressCountEl) inProgressCountEl.textContent = counts['in-progress'];
+    if (completedCountEl) completedCountEl.textContent = counts.completed;
+    if (cancelledCountEl) cancelledCountEl.textContent = counts.cancelled;
+  }
+
+  reset() {
+    this.currentStep = 1;
+    this.updateStepDisplay();
+  }
+}
+
+// Initialize form step manager
+let formStepManager;
+document.addEventListener('DOMContentLoaded', () => {
+  formStepManager = new FormStepManager();
+  formStepManager.init(); // เพิ่มการเรียก init()
+});
+
+// Enhanced Machine Selection Rendering
+function renderMachineCheckboxes(dept) {
+  const machineCheckboxGroup = document.getElementById("machineCheckboxGroup");
+  if (!machineCheckboxGroup) return;
+  
+  machineCheckboxGroup.innerHTML = '';
+  
+  if (machineOptions[dept] && machineOptions[dept].length > 0) {
+    machineOptions[dept].forEach(opt => {
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'machine-option';
+      optionDiv.innerHTML = `
+        <input type="radio" id="machine${opt.id}" name="machine" value="${opt.id}" required>
+        <label for="machine${opt.id}" class="mb-0 flex-grow-1">${opt.text}</label>
+      `;
+      
+      optionDiv.addEventListener('click', function() {
+        const radio = optionDiv.querySelector('input[type="radio"]');
+        radio.checked = true;
+        
+        // Update visual selection
+        document.querySelectorAll('.machine-option').forEach(el => {
+          el.classList.remove('selected');
+        });
+        optionDiv.classList.add('selected');
+      });
+      
+      machineCheckboxGroup.appendChild(optionDiv);
+    });
+  } else {
+    machineCheckboxGroup.innerHTML = `
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>
+        <p class="mb-0">ไม่มีเครื่องจักรในแผนกนี้</p>
+      </div>
+    `;
+  }
+}
 
 // Utility function to get Monday of a given week
 function getMonday(date) {
@@ -317,6 +736,11 @@ class CalendarRenderer {
         ` ${start.getDate()}-${end.getDate()} ${monthNames[start.getMonth()]} ${start.getFullYear()}`;
     }
     this.renderTasks();
+    
+    // Update status counts after rendering
+    if (formStepManager) {
+      formStepManager.updateStatusCounts();
+    }
   }
 
   static renderTasks() {
@@ -406,62 +830,169 @@ class CalendarRenderer {
 class ModalManager {
   static showTaskDetail = function (task, confirmOnly = false) {
     selectedTask = task;
-    document.getElementById("taskDetailTitle").textContent = `Job ID: ${task.JobID}`;
+    document.getElementById("taskDetailTitle").textContent = `งาน: ${task.JobName || task.LotNumber || `Job ID: ${task.JobID}`}`;
     
     let statusText = "-";
     let statusColor = "secondary";
     if (task.Status === "planning") {
       statusText = "กำลังวางแผน";
-      statusColor = "secondary";
+      statusColor = "primary";
     } else if (task.Status === "in-progress") {
-      statusText = "กำลังผลิต";
+      statusText = "กำลังดำเนินงาน";
       statusColor = "warning";
     } else if (task.Status === "completed") {
-      statusText = "เสร็จสิ้น - รอยืนยันครั้งสุดท้าย";
-      statusColor = "info";
+      statusText = "เสร็จสิ้น";
+      statusColor = "success";
     } else if (task.Status === "cancelled") {
       statusText = "ยกเลิก";
       statusColor = "danger";
     }
     
     let detailHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <p>
-                      <strong>สถานะ:</strong>
-                      <span class="badge bg-${statusColor}">${statusText}</span>
-                    </p>
-                    <p><strong>ชื่องาน:</strong> ${task.JobName || "-"}</p>
-                    <p><strong>แผนก:</strong> ${task.DepartmentName || "-"}</p>
-                    <p><strong>เครื่องจักร:</strong> ${task.MachineName || "-"}</p>
-                    <p><strong>Lot Number:</strong> ${task.LotNumber || "-"}</p>
-                    <p><strong>Planned Lot Size:</strong> ${task.PlannedLotSize || "-"}</p>
-                    ${task.StartTime ? `<p><strong>เวลาเริ่ม:</strong> ${new Date(task.StartTime).toLocaleString('th-TH')}</p>` : ''}
-                    ${task.EndTime ? `<p><strong>เวลาสิ้นสุด:</strong> ${new Date(task.EndTime).toLocaleString('th-TH')}</p>` : ''}
-                </div>
-                <div class="col-md-6">
-                    <p><strong>วันที่สร้าง:</strong> ${task.CreatedAt ? new Date(task.CreatedAt).toLocaleString('th-TH') : "-"}</p>
-                    <p><strong>วันที่อัปเดต:</strong> ${task.UpdatedAt ? new Date(task.UpdatedAt).toLocaleString('th-TH') : "-"}</p>
-                    <p><strong>สร้างโดย:</strong> User ID ${task.CreatedByUserID || "-"}</p>
-                </div>
+      <div class="row g-4">
+        <!-- Job Information Section -->
+        <div class="col-md-6">
+          <div class="task-detail-section">
+            <h6><i class="bi bi-info-circle-fill me-2"></i>ข้อมูลงาน</h6>
+            <div class="detail-item">
+              <span class="detail-label">สถานะ:</span>
+              <span class="detail-value">
+                <span class="badge bg-${statusColor} fs-6">${statusText}</span>
+              </span>
             </div>
-        `;
-    if (task.Details) {
-      detailHTML += `<hr><p><strong>รายละเอียด:</strong><br>${task.Details}</p>`;
+            <div class="detail-item">
+              <span class="detail-label">ชื่องาน:</span>
+              <span class="detail-value fw-bold">${task.JobName || "-"}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Lot Number:</span>
+              <span class="detail-value"><code>${task.LotNumber || "-"}</code></span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">แผนก:</span>
+              <span class="detail-value">${task.DepartmentName || "-"}</span>  
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">เครื่องจักร:</span>
+              <span class="detail-value">${task.MachineName || "-"}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Production Information Section -->
+        <div class="col-md-6">
+          <div class="task-detail-section">
+            <h6><i class="bi bi-graph-up me-2"></i>ข้อมูลการผลิต</h6>
+            <div class="detail-item">
+              <span class="detail-label">Lot Size:</span>
+              <span class="detail-value">
+                <span class="badge bg-info text-dark">${task.PlannedLotSize || "0"} ชิ้น</span>
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">เป้าหมายผลิต:</span>
+              <span class="detail-value">
+                <span class="badge bg-success">${task.ActualOutput || "0"} ชิ้น</span>
+              </span>
+            </div>
+            ${task.StartTime ? `
+            <div class="detail-item">
+              <span class="detail-label">เวลาเริ่ม:</span>
+              <span class="detail-value">
+                <i class="bi bi-play-circle me-1"></i>
+                ${new Date(task.StartTime).toLocaleString('th-TH')}
+              </span>
+            </div>` : ''}
+            ${task.EndTime ? `
+            <div class="detail-item">
+              <span class="detail-label">เวลาสิ้นสุด:</span>
+              <span class="detail-value">
+                <i class="bi bi-stop-circle me-1"></i>
+                ${new Date(task.EndTime).toLocaleString('th-TH')}
+              </span>
+            </div>` : ''}
+            ${task.StartTime && task.EndTime ? `
+            <div class="detail-item">
+              <span class="detail-label">ระยะเวลา:</span>
+              <span class="detail-value">
+                <i class="bi bi-stopwatch me-1"></i>
+                ${Utils.calculateDuration(task.StartTime, task.EndTime)} ชั่วโมง
+              </span>
+            </div>` : ''}
+          </div>
+        </div>
+        
+        <!-- System Information Section -->
+        <div class="col-12">
+          <div class="task-detail-section">
+            <h6><i class="bi bi-gear-fill me-2"></i>ข้อมูลระบบ</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="detail-item">
+                  <span class="detail-label">วันที่สร้าง:</span>
+                  <span class="detail-value">
+                    ${task.CreatedAt ? new Date(task.CreatedAt).toLocaleString('th-TH') : "-"}
+                  </span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="detail-item">
+                  <span class="detail-label">สร้างโดย:</span>
+                  <span class="detail-value">User ID ${task.CreatedByUserID || "-"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (task.Details && task.Details.trim()) {
+      detailHTML += `
+        <div class="row mt-3">
+          <div class="col-12">
+            <div class="task-detail-section">
+              <h6><i class="bi bi-journal-text me-2"></i>รายละเอียดเพิ่มเติม</h6>
+              <div class="bg-white p-3 rounded border">
+                <p class="mb-0">${task.Details}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
-    detailHTML += `<div class="mt-3 text-end gap-2 d-flex justify-content-end">`;
+
     detailHTML += `
-            <button id="editTaskBtn" class="btn btn-warning"><i class="bi bi-pencil-square me-1"></i>แก้ไข</button>
-            <button id="deleteTaskBtn" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i>ยกเลิก</button>
-        `;
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="d-flex justify-content-end gap-2">
+            <button id="editTaskBtn" class="btn btn-warning btn-lg">
+              <i class="bi bi-pencil-square me-2"></i>แก้ไขงาน
+            </button>
+            <button id="deleteTaskBtn" class="btn btn-danger btn-lg">
+              <i class="bi bi-trash me-2"></i>ลบงาน
+            </button>
+    `;
+
     if (task.Status === "completed") {
-      detailHTML += `<button id="finalConfirmBtn" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>ยืนยันจบงานสุดท้าย</button>`;
+      detailHTML += `
+        <button id="viewOEEBtn" class="btn btn-info btn-lg">
+          <i class="bi bi-graph-up-arrow me-2"></i>Confirm Product
+        </button>
+      `;
     } else if (task.Status === "in-progress") {
-      detailHTML += `<button id="completeTaskBtn" class="btn btn-info"><i class="bi bi-check-square me-1"></i>จบงาน</button>`;
-    } else {
-      detailHTML += `<button id="confirmTaskBtn" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>ยืนยันบันทึกงานนี้</button>`;
+      detailHTML += `
+        <button id="completeTaskBtn" class="btn btn-success btn-lg">
+          <i class="bi bi-check-circle me-2"></i>เสร็จสิ้นงาน
+        </button>
+      `;
     }
-    detailHTML += `</div>`;
+
+    detailHTML += `
+          </div>
+        </div>
+      </div>
+    `;
     document.getElementById("taskDetailBody").innerHTML = detailHTML;
     setTimeout(() => {
       const editBtn = document.getElementById("editTaskBtn");
@@ -539,6 +1070,15 @@ class ModalManager {
           }
         };
       }
+      
+      // Handler for viewOEEBtn (Confirm Product button)
+      const viewOEEBtn = document.getElementById("viewOEEBtn");
+      if (viewOEEBtn) {
+        viewOEEBtn.onclick = function (e) {
+          e.preventDefault();
+          window.location.href = `confirm-complete.html?id=${encodeURIComponent(task.JobID)}`;
+        };
+      }
     }, 0);
     new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
   };
@@ -579,10 +1119,10 @@ function fillAddJobFormWithTask(task) {
     renderMachineCheckboxes(task.DepartmentID.toString());
   }
   
-  // เปิดใช้ JobName
   setField("jobName", task.JobName || "");
   setField("lotNumber", task.LotNumber || "");
   setField("lotSize", task.PlannedLotSize || "");
+  setField("actualOutput", task.ActualOutput || "");
   setField("details", task.Details || "");
   setField("status", task.Status || "planning");
   
@@ -665,9 +1205,10 @@ function setupAddJobFormHandler() {
       }
       
       const taskData = {
-        JobName: formData.get("jobName") || "", // เปิดใช้
+        JobName: formData.get("jobName") || "",
         LotNumber: formData.get("lotNumber"),
         PlannedLotSize: LotSize,
+        ActualOutput: parseInt(formData.get("actualOutput") || "0", 10),
         MachineID: parseInt(selectedMachine.value, 10),
         DepartmentID: parseInt(formData.get("department"), 10),
         Status: formData.get("status") || "planning",
@@ -721,42 +1262,17 @@ function setupAddJobFormHandler() {
 }
 document.addEventListener("DOMContentLoaded", setupAddJobFormHandler);
 
-document.addEventListener("DOMContentLoaded", setupAddJobFormHandler);
-
-// index.js - JavaScript logic for index.html (Machine Control System)
+// Machine control system - JavaScript logic for index.html
 // ---------------------------------------------------------------
-// 1. Session check and redirect if not logged in
-// 2. Modal and form event handlers
-// 3. Department/machine mapping and dynamic checkbox rendering
-// 4. Utility: clear filters, toast, loading overlay
+// Enhanced form handling, task management, and calendar rendering
+// Uses NavigationManager component for navigation functionality
 // ---------------------------------------------------------------
 
-// 1. ตรวจสอบ session ด้วย AJAX ถ้ายังไม่ได้ login ให้ redirect ไปหน้า login.html
-function checkSession() {
-  fetch("login.php?action=check", { credentials: "same-origin" })
-    .then((res) => res.json())
-    .then((data) => {
-      if (!data.loggedIn) {
-        window.location.href = "login.html";
-      }
-    })
-    .catch(() => {
-      window.location.href = "login.html";
-    });
-}
-document.addEventListener("DOMContentLoaded", checkSession);
+// Session checking is now handled by NavigationManager
+// No legacy session checking needed
 
-// 2. เพิ่ม event ให้ปุ่ม "เพิ่มงานใหม่" เปิด modal
-function setupAddTaskButton() {
-  const addBtn = document.querySelector(".btn-success.btn-lg");
-  if (addBtn) {
-    addBtn.addEventListener("click", function () {
-      const modal = new bootstrap.Modal(document.getElementById("addJobModal"));
-      modal.show();
-    });
-  }
-}
-document.addEventListener("DOMContentLoaded", setupAddTaskButton);
+// Add task button is handled by existing modal setup
+// No additional setup needed
 
 // 3. ลบฟิลเตอร์ - ไม่ต้องการการกรอง
 // function setupFilterForm() {
@@ -792,21 +1308,8 @@ function setupCancelAddJobBtn() {
 }
 document.addEventListener("DOMContentLoaded", setupCancelAddJobBtn);
 
-// 5. Logout button event
-function setupLogoutBtn() {
-  document.getElementById("logoutBtn")?.addEventListener("click", async function () {
-    if (confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
-      try {
-        await fetch("logout.php", {
-          method: "POST",
-          credentials: "same-origin",
-        });
-      } catch {}
-      window.location.href = "login.html";
-    }
-  });
-}
-document.addEventListener("DOMContentLoaded", setupLogoutBtn);
+// Logout functionality is now handled by NavigationManager
+// No legacy logout handling needed
 
 // 6. Mapping เครื่องจักรแต่ละแผนก และ render checkbox เครื่องจักร
 // Machine mapping by DepartmentID (ใช้ MachineID ตามฐานข้อมูลใหม่)
@@ -889,6 +1392,13 @@ function setupDepartmentMachineEvents() {
   const addJobModal = document.getElementById("addJobModal");
   if (addJobModal && departmentSelect) {
     addJobModal.addEventListener("show.bs.modal", function () {
+      console.log('Modal is opening, resetting form step manager...');
+      
+      // Reset form step manager
+      if (formStepManager) {
+        formStepManager.reset();
+      }
+      
       if (!departmentSelect.value) {
         departmentSelect.value = "1"; // เลือก Screen เป็นค่าเริ่มต้น
       }
