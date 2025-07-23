@@ -238,6 +238,189 @@ $updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'Machine
         echo json_encode(['success' => true]);
         exit;
     }
+    
+    // ดึงข้อมูลงานเฉพาะสำหรับหน้า confirm-complete
+    if ($action === 'get_task_detail' && isset($_GET['id'])) {
+        $jobId = intval($_GET['id']);
+        $sql = "SELECT j.*, m.MachineName, d.DepartmentName FROM Jobs j
+                JOIN Machines m ON j.MachineID = m.MachineID
+                JOIN Departments d ON m.DepartmentID = d.DepartmentID
+                WHERE j.JobID = ?";
+        $stmt = sqlsrv_query($conn, $sql, [$jobId]);
+        if ($stmt === false) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Database query failed']);
+            exit;
+        }
+        
+        $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'Job not found']);
+            exit;
+        }
+        
+        // แปลง datetime fields
+        if (isset($row['StartTime']) && $row['StartTime'] && is_object($row['StartTime'])) {
+            $row['StartTime'] = $row['StartTime']->format('Y-m-d\TH:i:s');
+        }
+        if (isset($row['EndTime']) && $row['EndTime'] && is_object($row['EndTime'])) {
+            $row['EndTime'] = $row['EndTime']->format('Y-m-d\TH:i:s');
+        }
+        if (isset($row['CreatedAt']) && $row['CreatedAt'] && is_object($row['CreatedAt'])) {
+            $row['CreatedAt'] = $row['CreatedAt']->format('Y-m-d\TH:i:s');
+        }
+        if (isset($row['UpdatedAt']) && $row['UpdatedAt'] && is_object($row['UpdatedAt'])) {
+            $row['UpdatedAt'] = $row['UpdatedAt']->format('Y-m-d\TH:i:s');
+        }
+        
+        echo json_encode(['success' => true, 'data' => $row]);
+        exit;
+    }
+    
+    // บันทึกข้อมูล OEE และยืนยันจบงาน
+    if ($action === 'confirm_complete') {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$data || !isset($data['JobID'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid input data']);
+            exit;
+        }
+        
+        $jobId = intval($data['JobID']);
+        
+        // ตรวจสอบว่างานมีอยู่และสถานะเป็น completed
+        $checkSql = "SELECT JobID, Status FROM Jobs WHERE JobID = ?";
+        $checkStmt = sqlsrv_query($conn, $checkSql, [$jobId]);
+        if ($checkStmt === false) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Database query failed']);
+            exit;
+        }
+        
+        $job = sqlsrv_fetch_array($checkStmt, SQLSRV_FETCH_ASSOC);
+        if (!$job) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'error' => 'Job not found']);
+            exit;
+        }
+        
+        if ($job['Status'] !== 'completed') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Job must be completed before confirmation']);
+            exit;
+        }
+        
+        // ตรวจสอบว่ามีการบันทึก OEE ไปแล้วหรือไม่
+        $checkOEESql = "SELECT LogID FROM JobProductionLogs WHERE JobID = ?";
+        $checkOEEStmt = sqlsrv_query($conn, $checkOEESql, [$jobId]);
+        if ($checkOEEStmt === false) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Database query failed']);
+            exit;
+        }
+        
+        $existingLog = sqlsrv_fetch_array($checkOEEStmt, SQLSRV_FETCH_ASSOC);
+        
+        // เตรียมข้อมูลสำหรับบันทึก
+        $actualStartTime = $data['ActualStartTime'] ?? null;
+        $actualEndTime = $data['ActualEndTime'] ?? null;
+        $plannedProductionTime = intval($data['PlannedProductionTime'] ?? 0);
+        $operatingTime = intval($data['OperatingTime'] ?? 0);
+        $breakTime = intval($data['BreakTime'] ?? 0);
+        $breakTypes = $data['BreakTypes'] ?? '';
+        $downTime = intval($data['DownTime'] ?? 0);
+        $downTimeDetail = $data['DownTimeDetail'] ?? '';
+        $idealRunRate = floatval($data['IdealRunRate'] ?? 0);
+        $totalPieces = intval($data['TotalPieces'] ?? 0);
+        $rejectPieces = intval($data['RejectPieces'] ?? 0);
+        $goodPieces = intval($data['GoodPieces'] ?? 0);
+        $availability = floatval($data['Availability'] ?? 0);
+        $performance = floatval($data['Performance'] ?? 0);
+        $quality = floatval($data['Quality'] ?? 0);
+        $oee = floatval($data['OEE'] ?? 0);
+        $shiftLength9h = $data['ShiftLength9h'] ? 1 : 0;
+        $overtimeEnable = $data['OvertimeEnable'] ? 1 : 0;
+        $overtimeMinutes = intval($data['OvertimeMinutes'] ?? 0);
+        
+        try {
+            // เริ่ม transaction
+            if (sqlsrv_begin_transaction($conn) === false) {
+                throw new Exception('Failed to begin transaction');
+            }
+            
+            if ($existingLog) {
+                // อัปเดตข้อมูล OEE ที่มีอยู่
+                $updateSql = "UPDATE JobProductionLogs SET
+                    ActualStartTime = ?, ActualEndTime = ?, PlannedProductionTime = ?, OperatingTime = ?,
+                    BreakTime = ?, BreakTypes = ?, DownTime = ?, DownTimeDetail = ?, IdealRunRate = ?,
+                    TotalPieces = ?, RejectPieces = ?, GoodPieces = ?, OEE_Availability = ?, OEE_Performance = ?,
+                    OEE_Quality = ?, OEE_Total = ?, ShiftLength9h = ?, OvertimeEnable = ?, OvertimeMinutes = ?,
+                    UpdatedAt = GETDATE()
+                    WHERE JobID = ?";
+                
+                $updateParams = [
+                    $actualStartTime, $actualEndTime, $plannedProductionTime, $operatingTime,
+                    $breakTime, $breakTypes, $downTime, $downTimeDetail, $idealRunRate,
+                    $totalPieces, $rejectPieces, $goodPieces, $availability, $performance,
+                    $quality, $oee, $shiftLength9h, $overtimeEnable, $overtimeMinutes,
+                    $jobId
+                ];
+                
+                $updateStmt = sqlsrv_query($conn, $updateSql, $updateParams);
+                if ($updateStmt === false) {
+                    throw new Exception('Failed to update production log');
+                }
+            } else {
+                // สร้างข้อมูล OEE ใหม่
+                $insertSql = "INSERT INTO JobProductionLogs (
+                    JobID, ActualStartTime, ActualEndTime, PlannedProductionTime, OperatingTime,
+                    BreakTime, BreakTypes, DownTime, DownTimeDetail, IdealRunRate,
+                    TotalPieces, RejectPieces, GoodPieces, OEE_Availability, OEE_Performance,
+                    OEE_Quality, OEE_Total, ShiftLength9h, OvertimeEnable, OvertimeMinutes,
+                    CreatedAt, UpdatedAt
+                ) VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), GETDATE()
+                )";
+                
+                $insertParams = [
+                    $jobId, $actualStartTime, $actualEndTime, $plannedProductionTime, $operatingTime,
+                    $breakTime, $breakTypes, $downTime, $downTimeDetail, $idealRunRate,
+                    $totalPieces, $rejectPieces, $goodPieces, $availability, $performance,
+                    $quality, $oee, $shiftLength9h, $overtimeEnable, $overtimeMinutes
+                ];
+                
+                $insertStmt = sqlsrv_query($conn, $insertSql, $insertParams);
+                if ($insertStmt === false) {
+                    throw new Exception('Failed to insert production log');
+                }
+            }
+            
+            // อัปเดตสถานะงานเป็น 'confirmed' และอัปเดต ActualOutput
+            $updateJobSql = "UPDATE Jobs SET Status = 'confirmed', ActualOutput = ?, UpdatedAt = GETDATE() WHERE JobID = ?";
+            $updateJobStmt = sqlsrv_query($conn, $updateJobSql, [$totalPieces, $jobId]);
+            if ($updateJobStmt === false) {
+                throw new Exception('Failed to update job status');
+            }
+            
+            // Commit transaction
+            if (sqlsrv_commit($conn) === false) {
+                throw new Exception('Failed to commit transaction');
+            }
+            
+            echo json_encode(['success' => true, 'message' => 'OEE data saved successfully']);
+            
+        } catch (Exception $e) {
+            // Rollback transaction
+            sqlsrv_rollback($conn);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        
+        exit;
+    }
+    
     // ไม่รู้จัก action
     http_response_code(400);
     echo json_encode(['error' => 'Unknown action']);
