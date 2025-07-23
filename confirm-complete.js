@@ -82,6 +82,11 @@ class ConfirmCompleteManager {
             document.getElementById('totalPieces').value = this.taskData.ActualOutput;
         }
 
+        // Set default ideal run rate from machine data
+        // if (this.taskData.DefaultIdealRunRate) {
+        //     document.getElementById('idealRunRate').value = this.taskData.DefaultIdealRunRate;
+        // }
+
         // Calculate planned production time
         this.updatePlannedProductionTime();
     }
@@ -328,17 +333,16 @@ class ConfirmCompleteManager {
             // Availability = Operating Time / Planned Production Time
             const availability = plannedProductionTime > 0 ? (operatingTime / plannedProductionTime) * 100 : 0;
             
-            // Performance = (Total Pieces / Operating Time) / Ideal Run Rate * 100
-            // Or Performance = Total Pieces / (Operating Time * Ideal Run Rate) * 100
-            const idealPieces = operatingTime * idealRate;
-            const performance = idealPieces > 0 ? (totalPieces / idealPieces) * 100 : 0;
+            // Performance = (Total Count / Run Time) / Ideal Run Rate × 100
+            const actualRate = operatingTime > 0 ? (totalPieces / operatingTime) : 0;
+            const performance = idealRate > 0 ? (actualRate / idealRate) * 100 : 0;
             
             // Quality = Good Pieces / Total Pieces * 100
             const goodPieces = totalPieces - rejectPieces;
             const quality = totalPieces > 0 ? (goodPieces / totalPieces) * 100 : 0;
 
-            // Calculate total OEE = (Availability × Performance × Quality) / 1,000,000
-            const oeeTotal = (availability * performance * quality);
+            // Calculate total OEE = (Availability × Performance × Quality) / 10,000
+            const oeeTotal = (availability * performance * quality) / 10000;
 
             // Update display
             this.updateOEEDisplay(availability, performance, quality, oeeTotal);
@@ -508,10 +512,13 @@ class ConfirmCompleteManager {
 
         // OEE calculation with correct formulas
         const availability = plannedProductionTime > 0 ? (operatingTime / plannedProductionTime) * 100 : 0;
-        const idealPieces = operatingTime * idealRate;
-        const performance = idealPieces > 0 ? (totalPieces / idealPieces) * 100 : 0;
+        
+        // Performance = (Total Count / Run Time) / Ideal Run Rate × 100
+        const actualRate = operatingTime > 0 ? (totalPieces / operatingTime) : 0;
+        const performance = idealRate > 0 ? (actualRate / idealRate) * 100 : 0;
+        
         const quality = totalPieces > 0 ? (goodPieces / totalPieces) * 100 : 0;
-        const oeeTotal = (availability * performance * quality) / 1000000;
+        const oeeTotal = (availability * performance * quality) / 10000;
 
         return {
             JobID: this.taskId,

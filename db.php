@@ -1,19 +1,18 @@
 <?php
-$serverName = "localhost";
+$serverName = "203.154.130.236";
 $connectionOptions = array(
     "Database" => "ProductionDB",
-    "Uid" => "",
-    "PWD" => "",
-    "CharacterSet" => "UTF-8",
-    "TrustServerCertificate" => true,
-    "ReturnDatesAsStrings" => false // เปลี่ยนเป็น false เพื่อได้ DateTime objects
+    "Uid" => "sa",
+    "PWD" => "Journal@25",
+    "CharacterSet" => "UTF-8"
 );
 
 $conn = sqlsrv_connect($serverName, $connectionOptions);
 
-if (!$conn) {
-    // Log connection errors for debugging
-    error_log("Database connection failed: " . print_r(sqlsrv_errors(), true));
-    // ไม่ echo หรือ die เพื่อให้ login.php จัดการ error เอง
+if ($conn) {
+    //echo "เชื่อมต่อ SQL Server สำเร็จ!";
+} else {
+    echo "เชื่อมต่อไม่สำเร็จ:<br>";
+    die(print_r(sqlsrv_errors(), true));
 }
 ?>
