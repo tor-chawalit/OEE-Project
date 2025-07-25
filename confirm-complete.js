@@ -1,25 +1,39 @@
 // confirm-complete.js - Enhanced with Backend Integration
 // =====================================================
 
+/**
+ * คลาสหลักสำหรับจัดการหน้ายืนยันจบงาน
+ * รับผิดชอบการโหลดข้อมูล คำนวณ OEE และส่งข้อมูลไปยัง backend
+ */
 class ConfirmCompleteManager {
     constructor() {
-        this.taskData = null;
-        this.taskId = null;
-        this.isLoading = false;
+        this.taskData = null;      // ข้อมูลงานที่โหลดจากฐานข้อมูล
+        this.taskId = null;        // ID ของงานที่ต้องการยืนยัน
+        this.isLoading = false;    // สถานะการโหลดข้อมูล
     }
 
+    /**
+     * ฟังก์ชันเริ่มต้นของระบบ
+     * - ดึง task ID จาก URL parameter
+     * - โหลดข้อมูลงาน
+     * - ตั้งค่า event listeners
+     * - เริ่มการคำนวณเบื้องต้น
+     */
     async init() {
         try {
-            // Get task ID from URL parameter
+            // ดึง task ID จาก URL parameter (?id=123)
             const urlParams = new URLSearchParams(window.location.search);
             this.taskId = urlParams.get('id');
             
+            // ตรวจสอบว่ามี ID หรือไม่
             if (!this.taskId) {
                 this.showError('ไม่พบ ID งานที่ต้องการยืนยัน');
                 return;
             }
 
             console.log('Loading task data for ID:', this.taskId);
+            
+            // โหลดข้อมูลงาน ตั้งค่า listeners และเริ่มคำนวณ
             await this.loadTaskData();
             this.setupEventListeners();
             this.initializeCalculations();
@@ -30,28 +44,40 @@ class ConfirmCompleteManager {
         }
     }
 
+    /**
+     * ฟังก์ชันโหลดข้อมูลงานจาก backend
+     * - ส่ง request ไปยัง tasks.php?action=get_task_detail
+     * - ตรวจสอบ response และ error handling
+     * - เก็บข้อมูลไว้ใน this.taskData
+     * - เรียกฟังก์ชันแสดงผลข้อมูล
+     */
     async loadTaskData() {
         try {
+            // แสดง loading spinner
             this.showLoading(true);
             
+            // ส่ง request ไปยัง backend เพื่อดึงข้อมูลงาน
             const response = await fetch(`tasks.php?action=get_task_detail&id=${this.taskId}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
+            // แปลง response เป็น JSON และตรวจสอบผลลัพธ์
             const result = await response.json();
             if (!result.success) {
                 throw new Error(result.error || 'ไม่สามารถโหลดข้อมูลงานได้');
             }
 
+            // เก็บข้อมูลงานและแสดงใน console สำหรับ debug
             this.taskData = result.data;
             console.log('Task data loaded:', this.taskData);
             
-            // Validate task status
-            if (this.taskData.Status !== 'completed') {
-                throw new Error('งานนี้ยังไม่ได้ทำเสร็จ ไม่สามารถยืนยันได้');
-            }
+            // ตรวจสอบสถานะงาน (ปิดไว้ชั่วคราวเพื่อทดสอบ)
+            // if (this.taskData.Status !== 'completed') {
+            //     throw new Error('งานนี้ยังไม่ได้ทำเสร็จ ไม่สามารถยืนยันได้');
+            // }
 
+            // แสดงข้อมูลในฟอร์มและแสดงฟอร์ม
             this.populateTaskData();
             this.showForm();
             
@@ -59,48 +85,64 @@ class ConfirmCompleteManager {
             console.error('Load task data error:', error);
             this.showError('ไม่สามารถโหลดข้อมูลงานได้: ' + error.message);
         } finally {
+            // ซ่อน loading spinner เสมอ
             this.showLoading(false);
         }
     }
 
+    /**
+     * ฟังก์ชันแสดงข้อมูลงานในฟอร์ม
+     * - นำข้อมูลจาก this.taskData มาแสดงในฟิลด์ต่างๆ
+     * - ตั้งค่าเวลาเริ่มต้นและสิ้นสุดจากข้อมูลงาน
+     * - ตั้งค่าจำนวนผลิตจาก ActualOutput
+     */
     populateTaskData() {
         if (!this.taskData) return;
 
-        // Set default times based on task schedule
+        // ตั้งค่าเวลาเริ่มต้นจากข้อมูลงาน (StartTime)
         if (this.taskData.StartTime) {
             const startTime = new Date(this.taskData.StartTime);
             document.getElementById('actualStartTime').value = this.formatDateTimeLocal(startTime);
         }
 
+        // ตั้งค่าเวลาสิ้นสุดจากข้อมูลงาน (EndTime)
         if (this.taskData.EndTime) {
             const endTime = new Date(this.taskData.EndTime);
             document.getElementById('actualEndTime').value = this.formatDateTimeLocal(endTime);
         }
 
-        // Set total pieces from ActualOutput
+        // ตั้งค่าจำนวนผลิตรวมจาก ActualOutput
         if (this.taskData.ActualOutput) {
             document.getElementById('totalPieces').value = this.taskData.ActualOutput;
         }
 
-        // Set default ideal run rate from machine data
+        // ตั้งค่า ideal run rate จากข้อมูลเครื่องจักร (ถ้ามี)
         // if (this.taskData.DefaultIdealRunRate) {
         //     document.getElementById('idealRunRate').value = this.taskData.DefaultIdealRunRate;
         // }
 
-        // Calculate planned production time
+        // คำนวณเวลาผลิตตามแผนใหม่
         this.updatePlannedProductionTime();
     }
 
+    /**
+     * ฟังก์ชันคำนวณและแสดงเวลาผลิตตามแผน (Planned Production Time)
+     * - คำนวณจากเวลาเริ่มต้นถึงเวลาสิ้นสุด
+     * - หักเวลาพักที่เลือกไว้
+     * - แสดงผลลัพธ์ในฟิลด์ plannedProductionTime
+     */
     updatePlannedProductionTime() {
-        // ใช้เวลาที่ผู้ใช้ป้อนในฟิลด์แทนค่าเดิมจากฐานข้อมูล
+        // อ่านค่าเวลาจากฟิลด์ input
         const startTimeInput = document.getElementById('actualStartTime')?.value;
         const endTimeInput = document.getElementById('actualEndTime')?.value;
         
+        // ตรวจสอบว่ามีข้อมูลเวลาหรือไม่
         if (!startTimeInput || !endTimeInput) {
             document.getElementById('plannedProductionTime').value = 'ไม่ระบุ';
             return;
         }
 
+        // แปลงเป็น Date object และตรวจสอบความถูกต้อง
         const startTime = new Date(startTimeInput);
         const endTime = new Date(endTimeInput);
         
@@ -109,101 +151,140 @@ class ConfirmCompleteManager {
             return;
         }
         
+        // คำนวณระยะเวลารวม (นาที)
         const diffMs = endTime - startTime;
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
         
-        // Calculate break time
+        // คำนวณเวลาพักรวม
         let breakMinutes = 0;
         document.querySelectorAll('input[name="breakTime[]"]:checked').forEach(checkbox => {
             const breakTimes = { 'morning': 15, 'lunch': 60, 'evening': 15 };
             breakMinutes += breakTimes[checkbox.value] || 0;
         });
         
-        // Planned Production Time = Total Minutes - Break Time
+        // เวลาผลิตตามแผน = เวลารวม - เวลาพัก
         const plannedProductionTime = diffMinutes - breakMinutes;
         
+        // แสดงผลลัพธ์ (ป้องกันค่าติดลบ)
         document.getElementById('plannedProductionTime').value = `${Math.max(0, plannedProductionTime)} นาที`;
     }
 
+    /**
+     * ฟังก์ชันตั้งค่า Event Listeners สำหรับฟอร์มและ input ต่างๆ
+     * - Form submission
+     * - การเปลี่ยนแปลงเวลา
+     * - การเลือกเวลาพัก
+     * - การเปิด/ปิดโอที
+     * - การป้อนตัวเลขต่างๆ
+     */
     setupEventListeners() {
-        // Form submission
+        // ตั้งค่า listener สำหรับการส่งฟอร์ม
         const form = document.getElementById('emergencyStopForm');
         if (form) {
             form.addEventListener('submit', (e) => this.handleFormSubmit(e));
         }
 
-        // Time change events
+        // ตั้งค่า listener สำหรับการเปลี่ยนแปลงเวลา (จะคำนวณใหม่ทุกครั้ง)
         document.getElementById('actualStartTime')?.addEventListener('change', () => this.calculateTimes());
         document.getElementById('actualEndTime')?.addEventListener('change', () => this.calculateTimes());
 
-        // Break time checkboxes
+        // ตั้งค่า listener สำหรับ checkbox เวลาพัก
         document.querySelectorAll('input[name="breakTime[]"]').forEach(checkbox => {
             checkbox.addEventListener('change', () => this.calculateBreakTime());
         });
 
-        // Overtime checkbox
+        // ตั้งค่า listener สำหรับ checkbox โอที (เปิด/ปิดฟิลด์ overtime)
         document.getElementById('overtimeEnable')?.addEventListener('change', (e) => {
             const overtimeInput = document.getElementById('overtime');
             if (overtimeInput) {
-                overtimeInput.disabled = !e.target.checked;
+                overtimeInput.disabled = !e.target.checked;  // เปิด/ปิดฟิลด์ตามการเลือก
                 if (!e.target.checked) {
-                    overtimeInput.value = '';
+                    overtimeInput.value = '';  // ลบค่าเมื่อปิด
                 }
             }
-            this.calculateTimes();
+            this.calculateTimes();  // คำนวณใหม่
         });
 
-        // Numeric inputs for calculations
+        // ตั้งค่า listener สำหรับฟิลด์ตัวเลขที่ส่งผลต่อการคำนวณ
         document.getElementById('overtime')?.addEventListener('input', () => this.calculateTimes());
         document.getElementById('downtime')?.addEventListener('input', () => this.calculateTimes());
         document.getElementById('idealRunRate')?.addEventListener('input', () => this.calculatePerformance());
         document.getElementById('totalPieces')?.addEventListener('input', () => this.calculatePerformance());
         document.getElementById('rejectPieces')?.addEventListener('input', () => this.calculateQuality());
 
-        // Shift length checkbox
+        // ตั้งค่า listener สำหรับ checkbox ความยาวกะ (8 หรือ 9 ชั่วโมง)
         document.getElementById('shiftLength9h')?.addEventListener('change', () => this.calculateTimes());
 
-        // Show form footer when form is ready
+        // แสดงปุ่มส่งฟอร์มหลังจากโหลดเสร็จ (delay เล็กน้อย)
         setTimeout(() => {
             document.getElementById('confirmFooter').style.display = 'block';
         }, 1000);
     }
 
+    /**
+     * ฟังก์ชันเริ่มต้นการคำนวณทั้งหมด
+     * เรียกใช้หลังจากโหลดข้อมูลเสร็จเพื่อคำนวณค่าเริ่มต้น
+     */
     initializeCalculations() {
-        this.calculateBreakTime();
-        this.calculateTimes();
-        this.calculatePerformance();
-        this.calculateQuality();
+        this.calculateBreakTime();     // คำนวณเวลาพัก
+        this.calculateTimes();         // คำนวณเวลาต่างๆ
+        this.calculatePerformance();   // คำนวณ Performance
+        this.calculateQuality();       // คำนวณ Quality
     }
 
+    /**
+     * ฟังก์ชันคำนวณเวลาพักรวม
+     * - รวมเวลาพักจาก checkbox ที่เลือกไว้
+     * - แสดงผลรวมเวลาพัก
+     * - เรียกคำนวณเวลาอื่นๆ ใหม่
+     */
     calculateBreakTime() {
         let totalBreakMinutes = 0;
+        
+        // กำหนดเวลาพักแต่ละช่วง (นาที)
         const breakTimes = {
-            'morning': 15,
-            'lunch': 60,
-            'evening': 15
+            'morning': 15,   // พักเช้า 15 นาที
+            'lunch': 60,     // พักกลางวัน 60 นาที  
+            'evening': 15    // พักเย็น 15 นาที
         };
 
+        // นับเวลาพักจาก checkbox ที่ถูกเลือก
         document.querySelectorAll('input[name="breakTime[]"]:checked').forEach(checkbox => {
             totalBreakMinutes += breakTimes[checkbox.value] || 0;
         });
 
+        // แสดงผลรวมเวลาพัก
         document.getElementById('breakTotalMinutes').textContent = totalBreakMinutes;
+        
+        // แสดง/ซ่อน alert ของเวลาพักรวม
         document.getElementById('breakTotalDisplay').style.display = totalBreakMinutes > 0 ? 'block' : 'none';
 
+        // คำนวณเวลาอื่นๆ ใหม่
         this.calculateTimes();
     }
 
+    /**
+     * ฟังก์ชันคำนวณเวลาต่างๆ ที่ใช้ในการคำนวณ OEE
+     * - เวลาทำงานรวม (Total Minutes)
+     * - เวลาพัก (Break Minutes) 
+     * - เวลาโอที (Overtime Minutes)
+     * - เวลา downtime
+     * - เวลาผลิตตามแผน (Planned Production Time)
+     * - เวลาเดินเครื่องจริง (Operating Time/Run Time)
+     */
     calculateTimes() {
+        // อ่านค่าเวลาจากฟิลด์
         const startTimeInput = document.getElementById('actualStartTime');
         const endTimeInput = document.getElementById('actualEndTime');
         
+        // ตรวจสอบว่ามีข้อมูลเวลาหรือไม่
         if (!startTimeInput.value || !endTimeInput.value) {
             document.getElementById('operatingTime').value = '';
             document.getElementById('netRunTime').value = '';
             return;
         }
 
+        // แปลงเป็น Date object และตรวจสอบความถูกต้อง
         const startTime = new Date(startTimeInput.value);
         const endTime = new Date(endTimeInput.value);
         
@@ -212,38 +293,37 @@ class ConfirmCompleteManager {
             return;
         }
 
-        // Calculate total working time
+        // คำนวณเวลาทำงานรวม (นาที)
         const totalMinutes = Math.floor((endTime - startTime) / (1000 * 60));
         
-        // Calculate break time
+        // คำนวณเวลาพักรวม
         let breakMinutes = 0;
         document.querySelectorAll('input[name="breakTime[]"]:checked').forEach(checkbox => {
             const breakTimes = { 'morning': 15, 'lunch': 60, 'evening': 15 };
             breakMinutes += breakTimes[checkbox.value] || 0;
         });
 
-        // Calculate overtime
+        // คำนวณเวลาโอที
         let overtimeMinutes = 0;
         if (document.getElementById('overtimeEnable')?.checked) {
             overtimeMinutes = parseInt(document.getElementById('overtime')?.value || '0');
         }
 
-        // Calculate downtime
+        // คำนวณเวลา downtime
         const downtimeMinutes = parseInt(document.getElementById('downtime')?.value || '0');
 
-        // Calculate shift available time
-        const shiftMinutes = document.getElementById('shiftLength9h')?.checked ? 540 : 480;
-        const availableTime = shiftMinutes + overtimeMinutes;
+        // คำนวณเวลาผลิตตามแผนและเวลาเดินเครื่องจริง
+        const plannedProductionTime = totalMinutes - breakMinutes;              // เวลาผลิตตามแผน
+        const operatingTime = plannedProductionTime - downtimeMinutes;          // เวลาเดินเครื่องจริง (Run Time)
         
-        // Calculate planned production time and operating time
-        const plannedProductionTime = totalMinutes - breakMinutes;
-        const operatingTime = plannedProductionTime - downtimeMinutes; // Run Time = Planned Production Time - Downtime
-        
-        // Update displays
+        // แสดงผลลัพธ์ในฟิลด์ต่างๆ
         document.getElementById('operatingTime').value = `${Math.max(0, operatingTime)} นาที`;
         document.getElementById('netRunTime').value = `${Math.max(0, operatingTime)} นาที`;
 
-        // Show shift available time if relevant
+        // แสดงเวลากะที่มี (สำหรับข้อมูล)
+        const shiftMinutes = document.getElementById('shiftLength9h')?.checked ? 540 : 480;  // 9 หรือ 8 ชั่วโมง
+        const availableTime = shiftMinutes + overtimeMinutes;
+        
         const shiftDisplay = document.getElementById('shiftAvailableTimeDisplay');
         const shiftText = document.getElementById('shiftAvailableTimeText');
         if (shiftDisplay && shiftText) {
@@ -251,13 +331,14 @@ class ConfirmCompleteManager {
             shiftDisplay.style.display = 'block';
         }
 
-        // Show actual duration
+        // แสดงระยะเวลาทำงานจริง
         document.getElementById('actualDurationText').textContent = `${totalMinutes} นาที`;
         document.getElementById('actualDurationDisplay').style.display = 'block';
 
-        // Update planned production time
+        // อัปเดตเวลาผลิตตามแผน
         this.updatePlannedProductionTime();
 
+        // คำนวณ OEE ใหม่
         this.calculateOEE();
     }
 
@@ -289,9 +370,25 @@ class ConfirmCompleteManager {
         this.calculateOEE();
     }
 
+    /**ฃ
+     * ฟังก์ชันคำนวณค่า OEE (Overall Equipment Effectiveness)
+     * 
+     * สูตรการคำนวณ OEE:
+     * OEE = Availability × Performance × Quality (หารด้วย 10,000 เพื่อให้เป็นเปอร์เซ็นต์)
+     * 
+     * โดยที่:
+     * - Availability = (Operating Time / Planned Production Time) × 100
+     * - Performance = (Actual Rate / Ideal Rate) × 100  
+     * - Quality = (Good Pieces / Total Pieces) × 100
+     * 
+     * คำอธิบายเพิ่มเติม:
+     * - Operating Time = Planned Production Time - Downtime
+     * - Actual Rate = Total Pieces / Operating Time (ชิ้น/นาที)
+     * - Good Pieces = Total Pieces - Reject Pieces
+     */
     calculateOEE() {
         try {
-            // Get values
+            // อ่านค่าจากฟิลด์ต่างๆ
             const startTimeInput = document.getElementById('actualStartTime')?.value;
             const endTimeInput = document.getElementById('actualEndTime')?.value;
             const idealRate = parseFloat(document.getElementById('idealRunRate')?.value || '0');
@@ -299,92 +396,121 @@ class ConfirmCompleteManager {
             const rejectPieces = parseInt(document.getElementById('rejectPieces')?.value || '0');
             const downtimeMinutes = parseInt(document.getElementById('downtime')?.value || '0');
 
+            // ตรวจสอบข้อมูลที่จำเป็นสำหรับการคำนวณ
             if (!startTimeInput || !endTimeInput || idealRate <= 0 || totalPieces <= 0) {
                 this.resetOEEDisplay();
                 return;
             }
 
-            // Calculate times
+            // คำนวณเวลาต่างๆ
             const startTime = new Date(startTimeInput);
             const endTime = new Date(endTimeInput);
             const totalMinutes = Math.floor((endTime - startTime) / (1000 * 60));
 
-            // Calculate break time
+            // คำนวณเวลาพักรวม
             let breakMinutes = 0;
             document.querySelectorAll('input[name="breakTime[]"]:checked').forEach(checkbox => {
                 const breakTimes = { 'morning': 15, 'lunch': 60, 'evening': 15 };
                 breakMinutes += breakTimes[checkbox.value] || 0;
             });
 
-            // Calculate overtime
+            // คำนวณเวลาโอที
             let overtimeMinutes = 0;
             if (document.getElementById('overtimeEnable')?.checked) {
                 overtimeMinutes = parseInt(document.getElementById('overtime')?.value || '0');
             }
 
-            // Calculate shift time (planned production time)
-            // ใช้เฉพาะเวลาจริงที่ผู้ใช้กรอก ไม่เกี่ยวข้องกับ Shift Length
+            // คำนวณเวลาผลิตตามแผน (ใช้เวลาจริงที่ผู้ใช้กรอก ไม่เกี่ยวข้องกับ Shift Length)
             const plannedProductionTime = totalMinutes - breakMinutes;
             
-            // Calculate operating time (Run Time = Planned Production Time - Downtime)
+            // คำนวณเวลาเดินเครื่องจริง (Operating Time = Planned Production Time - Downtime)
             const operatingTime = plannedProductionTime - downtimeMinutes;
 
-            // Calculate OEE components with correct formulas
-            // Availability = Operating Time / Planned Production Time
+            // คำนวณองค์ประกอบของ OEE ด้วยสูตรที่ถูกต้อง
+            // Availability = Operating Time / Planned Production Time × 100
             const availability = plannedProductionTime > 0 ? (operatingTime / plannedProductionTime) * 100 : 0;
             
-            // Performance = (Total Count / Run Time) / Ideal Run Rate × 100
+            // Performance = (Total Pieces / Operating Time) / Ideal Rate × 100
             const actualRate = operatingTime > 0 ? (totalPieces / operatingTime) : 0;
             const performance = idealRate > 0 ? (actualRate / idealRate) * 100 : 0;
             
-            // Quality = Good Pieces / Total Pieces * 100
+            // Quality = Good Pieces / Total Pieces × 100
             const goodPieces = totalPieces - rejectPieces;
             const quality = totalPieces > 0 ? (goodPieces / totalPieces) * 100 : 0;
 
-            // Calculate total OEE = (Availability × Performance × Quality) / 10,000
+            // คำนวณ OEE รวม = (Availability × Performance × Quality) / 10,000
             const oeeTotal = (availability * performance * quality) / 10000;
 
-            // Update display
+            // อัปเดตการแสดงผล
             this.updateOEEDisplay(availability, performance, quality, oeeTotal);
 
         } catch (error) {
-            console.error('OEE calculation error:', error);
+            console.error('เกิดข้อผิดพลาดในการคำนวณ OEE:', error);
             this.resetOEEDisplay();
         }
     }
 
+    /**
+     * ฟังก์ชันอัปเดตการแสดงผลค่า OEE
+     * 
+     * @param {number} availability - ค่า Availability (%)
+     * @param {number} performance - ค่า Performance (%)
+     * @param {number} quality - ค่า Quality (%)
+     * @param {number} oeeTotal - ค่า OEE รวม (%)
+     */
     updateOEEDisplay(availability, performance, quality, oeeTotal) {
+        // ฟังก์ชันจัดรูปแบบเปอร์เซ็นต์ (จำกัดค่าระหว่าง 0-100%)
         const formatPercent = (value) => `${Math.round(Math.max(0, Math.min(100, value)))}%`;
         
+        // อัปเดตข้อความแสดงผล
         document.getElementById('oeeAvailability').textContent = formatPercent(availability);
         document.getElementById('oeePerformance').textContent = formatPercent(performance);
         document.getElementById('oeeQuality').textContent = formatPercent(quality);
         document.getElementById('oeeTotal').textContent = formatPercent(oeeTotal);
 
-        // Update badge colors based on values
+        // อัปเดตสีของ badge ตามค่าที่ได้
         this.updateBadgeColor('oeeAvailability', availability);
         this.updateBadgeColor('oeePerformance', performance);
         this.updateBadgeColor('oeeQuality', quality);
         this.updateBadgeColor('oeeTotal', oeeTotal);
     }
 
+    /**
+     * ฟังก์ชันอัปเดตสีของ badge ตามค่าเปอร์เซ็นต์
+     * 
+     * @param {string} elementId - ID ของ element ที่ต้องการเปลี่ยนสี
+     * @param {number} value - ค่าเปอร์เซ็นต์ที่ใช้ในการกำหนดสี
+     * 
+     * เกณฑ์การให้สี:
+     * - เขียว (success): >= 85%
+     * - เหลือง (warning): 70-84%
+     * - ส้ม (orange): 40-69%
+     * - แดง (danger): < 40%
+     */
     updateBadgeColor(elementId, value) {
         const element = document.getElementById(elementId);
         if (!element) return;
 
+        // ลบคลาสสีเก่าออก
         element.className = element.className.replace(/bg-\w+/g, '');
         
+        // เพิ่มคลาสสีใหม่ตามค่าที่ได้
         if (value >= 85) {
-            element.classList.add('bg-success');
+            element.classList.add('bg-success');      // เขียว - ดีมาก
         } else if (value >= 70) {
-            element.classList.add('bg-warning');
+            element.classList.add('bg-warning');      // เหลือง - ปานกลาง
         } else if (value >= 40) {
-            element.classList.add('bg-orange');
+            element.classList.add('bg-orange');       // ส้ม - ต้องปรับปรุง
         } else {
-            element.classList.add('bg-danger');
+            element.classList.add('bg-danger');       // แดง - ต้องแก้ไขด่วน
         }
     }
 
+    /**
+     * ฟังก์ชันรีเซ็ตการแสดงผล OEE เป็นค่าเริ่มต้น
+     * - แสดงเครื่องหมาย "-" แทนค่า
+     * - เปลี่ยนสีเป็นสีเทา (secondary)
+     */
     resetOEEDisplay() {
         ['oeeAvailability', 'oeePerformance', 'oeeQuality', 'oeeTotal'].forEach(id => {
             const element = document.getElementById(id);
@@ -395,13 +521,23 @@ class ConfirmCompleteManager {
         });
     }
 
+    /**
+     * ฟังก์ชันจัดการการส่งฟอร์ม
+     * - ตรวจสอบความถูกต้องของข้อมูล
+     * - รวบรวมข้อมูลจากฟอร์ม
+     * - ส่งข้อมูลไปยัง API
+     * - แสดงผลลัพธ์การส่งข้อมูล
+     * 
+     * @param {Event} event - event object จากการส่งฟอร์ม
+     */
     async handleFormSubmit(event) {
         event.preventDefault();
         
+        // ป้องกันการส่งซ้ำขณะกำลังประมวลผล
         if (this.isLoading) return;
 
         try {
-            // Validate form
+            // ตรวจสอบความถูกต้องของฟอร์ม
             if (!this.validateForm()) {
                 return;
             }
@@ -409,11 +545,11 @@ class ConfirmCompleteManager {
             this.isLoading = true;
             this.showLoading(true);
 
-            // Collect form data
+            // รวบรวมข้อมูลจากฟอร์ม
             const formData = this.collectFormData();
-            console.log('Submitting OEE data:', formData);
+            console.log('กำลังส่งข้อมูล OEE:', formData);
 
-            // Submit to backend
+            // ส่งข้อมูลไปยัง backend API
             const response = await fetch('tasks.php?action=confirm_complete', {
                 method: 'POST',
                 headers: {
@@ -422,6 +558,7 @@ class ConfirmCompleteManager {
                 body: JSON.stringify(formData)
             });
 
+            // ตรวจสอบสถานะการตอบกลับ
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -431,16 +568,16 @@ class ConfirmCompleteManager {
                 throw new Error(result.error || 'การบันทึกข้อมูลล้มเหลว');
             }
 
-            // Show success message
+            // แสดงข้อความสำเร็จ
             this.showToast('บันทึกข้อมูล OEE สำเร็จ!', 'success');
             
-            // Redirect after short delay
+            // เปลี่ยนหน้าหลังจากหน่วงเวลาเล็กน้อย
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 2000);
 
         } catch (error) {
-            console.error('Form submission error:', error);
+            console.error('เกิดข้อผิดพลาดในการส่งฟอร์ม:', error);
             this.showToast('เกิดข้อผิดพลาด: ' + error.message, 'danger');
         } finally {
             this.isLoading = false;
@@ -448,15 +585,22 @@ class ConfirmCompleteManager {
         }
     }
 
+    /**
+     * ฟังก์ชันตรวจสอบความถูกต้องของข้อมูลในฟอร์ม
+     * 
+     * @returns {boolean} true หากข้อมูลถูกต้อง, false หากมีข้อผิดพลาด
+     */
     validateForm() {
         const form = document.getElementById('emergencyStopForm');
+        
+        // ตรวจสอบ HTML5 validation
         if (!form.checkValidity()) {
             form.classList.add('was-validated');
             this.showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'warning');
             return false;
         }
 
-        // Additional validation
+        // ตรวจสอบเวลาเริ่มต้นและสิ้นสุด
         const startTime = new Date(document.getElementById('actualStartTime').value);
         const endTime = new Date(document.getElementById('actualEndTime').value);
         
@@ -465,6 +609,7 @@ class ConfirmCompleteManager {
             return false;
         }
 
+        // ตรวจสอบจำนวนผลิตและของเสีย
         const totalPieces = parseInt(document.getElementById('totalPieces').value || '0');
         const rejectPieces = parseInt(document.getElementById('rejectPieces').value || '0');
         
@@ -476,20 +621,30 @@ class ConfirmCompleteManager {
         return true;
     }
 
+    /**
+     * ฟังก์ชันรวบรวมข้อมูลจากฟอร์มเพื่อส่งไปยัง API
+     * 
+     * @returns {Object} ข้อมูลฟอร์มที่จัดระเบียบแล้ว
+     */
     collectFormData() {
-        // Calculate OEE values
+        // คำนวณค่า OEE ก่อนรวบรวมข้อมูล
         const startTime = new Date(document.getElementById('actualStartTime').value);
         const endTime = new Date(document.getElementById('actualEndTime').value);
         const totalMinutes = Math.floor((endTime - startTime) / (1000 * 60));
 
-        // Break time calculation
-        let breakMinutes = 0;
-        const breakTypes = [];
+        // Break time calculation - แยกเป็น 3 ช่วง
+        let breakMorning = 0;
+        let breakLunch = 0;
+        let breakEvening = 0;
+        
         document.querySelectorAll('input[name="breakTime[]"]:checked').forEach(checkbox => {
             const breakTimes = { 'morning': 15, 'lunch': 60, 'evening': 15 };
-            breakMinutes += breakTimes[checkbox.value] || 0;
-            breakTypes.push(checkbox.value);
+            if (checkbox.value === 'morning') breakMorning = breakTimes[checkbox.value];
+            if (checkbox.value === 'lunch') breakLunch = breakTimes[checkbox.value];
+            if (checkbox.value === 'evening') breakEvening = breakTimes[checkbox.value];
         });
+
+        const totalBreakMinutes = breakMorning + breakLunch + breakEvening;
 
         // Calculate overtime
         let overtimeMinutes = 0;
@@ -499,23 +654,23 @@ class ConfirmCompleteManager {
 
         const downtimeMinutes = parseInt(document.getElementById('downtime').value || '0');
         
-        // Calculate shift time and operating time correctly
-        // ใช้เฉพาะเวลาจริงที่ผู้ใช้กรอก ไม่เกี่ยวข้องกับ Shift Length
-        const plannedProductionTime = totalMinutes - breakMinutes;
-        const operatingTime = plannedProductionTime - downtimeMinutes;
+        // Calculate shift hours and planned production time
+        const shiftHours = document.getElementById('shiftLength9h')?.checked ? 9.0 : 8.0;
+        const plannedProductionMinutes = totalMinutes - totalBreakMinutes;
+        const runTimeMinutes = plannedProductionMinutes - downtimeMinutes;
 
         // Performance calculation
-        const idealRate = parseFloat(document.getElementById('idealRunRate').value || '0');
+        const idealRunRateUsed = parseFloat(document.getElementById('idealRunRate').value || '0');
         const totalPieces = parseInt(document.getElementById('totalPieces').value || '0');
         const rejectPieces = parseInt(document.getElementById('rejectPieces').value || '0');
         const goodPieces = totalPieces - rejectPieces;
 
         // OEE calculation with correct formulas
-        const availability = plannedProductionTime > 0 ? (operatingTime / plannedProductionTime) * 100 : 0;
+        const availability = plannedProductionMinutes > 0 ? (runTimeMinutes / plannedProductionMinutes) * 100 : 0;
         
         // Performance = (Total Count / Run Time) / Ideal Run Rate × 100
-        const actualRate = operatingTime > 0 ? (totalPieces / operatingTime) : 0;
-        const performance = idealRate > 0 ? (actualRate / idealRate) * 100 : 0;
+        const actualRate = runTimeMinutes > 0 ? (totalPieces / runTimeMinutes) : 0;
+        const performance = idealRunRateUsed > 0 ? (actualRate / idealRunRateUsed) * 100 : 0;
         
         const quality = totalPieces > 0 ? (goodPieces / totalPieces) * 100 : 0;
         const oeeTotal = (availability * performance * quality) / 10000;
@@ -524,23 +679,23 @@ class ConfirmCompleteManager {
             JobID: this.taskId,
             ActualStartTime: this.formatDateTimeSQL(startTime),
             ActualEndTime: this.formatDateTimeSQL(endTime),
-            PlannedProductionTime: plannedProductionTime,
-            OperatingTime: operatingTime,
-            BreakTime: breakMinutes,
-            BreakTypes: breakTypes.join(','),
-            DownTime: downtimeMinutes,
-            DownTimeDetail: document.getElementById('downtimeDetail').value || '',
-            IdealRunRate: idealRate,
+            ShiftHours: shiftHours,
+            OvertimeMinutes: overtimeMinutes,
+            TookBreakMorning: breakMorning,
+            TookBreakLunch: breakLunch,
+            TookBreakEvening: breakEvening,
+            IdealRunRateUsed: idealRunRateUsed,
             TotalPieces: totalPieces,
             RejectPieces: rejectPieces,
-            GoodPieces: goodPieces,
-            Availability: Math.round(availability * 100) / 100,
-            Performance: Math.round(performance * 100) / 100,
-            Quality: Math.round(quality * 100) / 100,
-            OEE: Math.round(oeeTotal * 100) / 100,
-            ShiftLength9h: document.getElementById('shiftLength9h').checked,
-            OvertimeEnable: document.getElementById('overtimeEnable').checked,
-            OvertimeMinutes: parseInt(document.getElementById('overtime').value || '0')
+            TotalDowntimeMinutes: downtimeMinutes,
+            PlannedProductionMinutes: plannedProductionMinutes,
+            RunTimeMinutes: runTimeMinutes,
+             GoodPieces: goodPieces,
+            OEE_Availability: Math.round(availability * 100) / 100,
+            OEE_Performance: Math.round(performance * 100) / 100,
+            OEE_Quality: Math.round(quality * 100) / 100,
+            OEE_Total: Math.round(oeeTotal * 100) / 100,
+            ConfirmedByUserID: 1 // ค่าเริ่มต้น - ควรใช้ session หรือ user login
         };
     }
 

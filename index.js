@@ -748,46 +748,62 @@ class CalendarRenderer {
     document.querySelectorAll(".calendar-cell.has-task").forEach((el) => el.classList.remove("has-task"));
     
     const filteredTasks = TaskManager.getFilteredTasks();
+    console.log("Rendering tasks:", filteredTasks.length, "tasks found");
     const calendarBody = document.getElementById("calendarBody");
     
-    // แสดงงานทั้งหมดโดยไม่มีการกรองใดๆ
-    filteredTasks.forEach((task) => {
+    if (!calendarBody) {
+      console.error("Calendar body not found!");
+      return;
+    }
+    
+    // แสดงงานทั้งหมดในปฏิทิน โดยแสดงงานในทุกสัปดาห์ที่มีการกำหนดไว้
+    filteredTasks.forEach((task, index) => {
+      console.log(`Processing task ${index + 1}:`, task);
+      
       // ถ้ามี StartTime และ EndTime ให้แสดงตามเวลาจริง
       if (task.StartTime && task.EndTime) {
         const taskStart = new Date(task.StartTime);
+        console.log(`Task start time:`, taskStart);
         
-        // ไม่ตรวจสอบช่วงเวลาเลย แสดงทุกงาน
         // คำนวณวันของสัปดาห์ (จันทร์ = 0, อาทิตย์ = 6)
         let dayIdx = taskStart.getDay() === 0 ? 6 : taskStart.getDay() - 1;
         let startHour = taskStart.getHours();
         
-        // ถ้าไม่อยู่ในสัปดาห์ปัจจุบัน ให้แสดงในวันนี้เวลา 08:00
-        const weekStart = new Date(currentWeekStart);
-        const weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        weekEnd.setHours(23, 59, 59, 999);
+        console.log(`Day index: ${dayIdx}, Start hour: ${startHour}`);
         
-        if (taskStart < weekStart || taskStart > weekEnd) {
-          const today = new Date();
-          dayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1;
-          startHour = 8;
-        }
+        // ตรวจสอบว่าอยู่ในสัปดาห์ที่กำลังดูอยู่หรือไม่ (ไม่จำกัดเฉพาะสัปดาห์ปัจจุบัน)
+        const viewingWeekStart = new Date(currentWeekStart);
+        const viewingWeekEnd = new Date(currentWeekStart);
+        viewingWeekEnd.setDate(viewingWeekEnd.getDate() + 6);
+        viewingWeekEnd.setHours(23, 59, 59, 999);
         
-        // หาเซลล์ที่จะแสดงงาน
-        const cell = calendarBody.querySelector(`.calendar-cell[data-day="${dayIdx}"][data-hour="${startHour}"]`);
+        console.log(`Viewing week range: ${viewingWeekStart} to ${viewingWeekEnd}`);
+        console.log(`Task in viewing week: ${taskStart >= viewingWeekStart && taskStart <= viewingWeekEnd}`);
         
-        if (cell) {
-          const taskElement = this.createTaskElement(task);
-          if (taskElement) {
-            taskElement.style.position = "relative";
-            taskElement.style.margin = "2px 0";
-            taskElement.style.padding = "4px 8px";
-            taskElement.style.fontSize = "0.8em";
-            taskElement.style.cursor = "pointer";
-            taskElement.onclick = () => ModalManager.showTaskDetail(task);
-            cell.appendChild(taskElement);
-            cell.classList.add("has-task");
+        // แสดงงานทุกอันที่อยู่ในสัปดาห์ที่กำลังดูอยู่ (ไม่ว่าจะเป็นอดีต ปัจจุบัน หรืออนาคต)
+        if (taskStart >= viewingWeekStart && taskStart <= viewingWeekEnd) {
+          // หาเซลล์ที่จะแสดงงาน
+          const cell = calendarBody.querySelector(`.calendar-cell[data-day="${dayIdx}"][data-hour="${startHour}"]`);
+          console.log(`Looking for cell with day=${dayIdx}, hour=${startHour}:`, cell);
+          
+          if (cell) {
+            const taskElement = this.createTaskElement(task);
+            if (taskElement) {
+              taskElement.style.position = "relative";
+              taskElement.style.margin = "2px 0";
+              taskElement.style.padding = "4px 8px";
+              taskElement.style.fontSize = "0.8em";
+              taskElement.style.cursor = "pointer";
+              taskElement.onclick = () => ModalManager.showTaskDetail(task);
+              cell.appendChild(taskElement);
+              cell.classList.add("has-task");
+              console.log(`Task added to calendar:`, task.JobName || task.LotNumber);
+            }
+          } else {
+            console.warn(`Cell not found for day=${dayIdx}, hour=${startHour}`);
           }
+        } else {
+          console.log(`Task outside current week, skipping:`, task.JobName || task.LotNumber);
         }
       } else {
         // ถ้าไม่มีเวลา ให้แสดงในช่องเวลา 08:00 ของวันปัจจุบัน
@@ -1237,6 +1253,9 @@ function setupAddJobFormHandler() {
           console.log("Adding new task with data:", taskData);
           const result = await TaskManager.addTask(taskData);
           console.log("Add result:", result);
+          // โหลดข้อมูลใหม่และ refresh ปฏิทิน
+          await TaskManager.loadFromDB();
+          await CalendarRenderer.render();
           showToast("เพิ่มงานสำเร็จ", "success");
         } catch (error) {
           console.error('Add task error:', error);
@@ -1255,6 +1274,27 @@ function setupAddJobFormHandler() {
       setTimeout(() => {
         addJobForm.reset();
         window.selectedEditTask = null;
+        
+        // รีเซ็ต modal title และปุ่ม
+        const modalTitle = document.querySelector("#addJobModal .modal-title span");
+        const submitBtn = document.querySelector("#addJobModal button[type='submit']");
+        if (modalTitle) modalTitle.textContent = "เพิ่มงานใหม่";
+        if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>เพิ่มงาน';
+        
+        // รีเซ็ต step manager
+        if (formStepManager) {
+          formStepManager.reset();
+        }
+        
+        // ล้างการเลือกเครื่องจักร
+        const machineCheckboxGroup = document.getElementById("machineCheckboxGroup");
+        if (machineCheckboxGroup) {
+          machineCheckboxGroup.innerHTML = `
+            <div class="text-muted text-center py-3">
+              <i class="bi bi-arrow-left me-2"></i>กรุณาเลือกแผนกก่อน
+            </div>
+          `;
+        }
       }, 300);
     });
     addJobForm._handlerAdded = true;

@@ -9,10 +9,9 @@ $connectionOptions = array(
 
 $conn = sqlsrv_connect($serverName, $connectionOptions);
 
-if ($conn) {
-    //echo "เชื่อมต่อ SQL Server สำเร็จ!";
-} else {
-    echo "เชื่อมต่อไม่สำเร็จ:<br>";
-    die(print_r(sqlsrv_errors(), true));
+if (!$conn) {
+    // ไม่ echo หรือ die ตรงนี้ เพราะจะทำลาย JSON response
+    // ให้ tasks.php จัดการ error เอง
+    $conn = false;
 }
 ?>
