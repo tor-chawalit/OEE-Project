@@ -52,9 +52,10 @@ if (isset($_GET['action'])) {
     }
     // ดึงงานทั้งหมด (รวมทั้งที่เสร็จแล้ว)
     if ($action === 'get_tasks') {
-        $sql = "SELECT j.*, m.MachineName, d.DepartmentName FROM Jobs j
+        $sql = "SELECT j.*, m.MachineName, d.DepartmentName, l.ConfirmedAt FROM Jobs j
                 JOIN Machines m ON j.MachineID = m.MachineID
                 JOIN Departments d ON m.DepartmentID = d.DepartmentID
+                LEFT JOIN JobProductionLogs l ON l.JobID = j.JobID
                 ORDER BY j.CreatedAt ASC";
         $stmt = sqlsrv_query($conn, $sql);
         if ($stmt === false) {
@@ -77,6 +78,30 @@ if (isset($_GET['action'])) {
             if (isset($row['UpdatedAt']) && $row['UpdatedAt'] && is_object($row['UpdatedAt'])) {
                 $row['UpdatedAt'] = $row['UpdatedAt']->format('Y-m-d\TH:i:s');
             }
+            if (isset($row['ConfirmedAt']) && $row['ConfirmedAt'] && is_object($row['ConfirmedAt'])) {
+                $row['ConfirmedAt'] = $row['ConfirmedAt']->format('Y-m-d\TH:i:s');
+            }
+            
+            // ถ้ามี MachineIDs ให้แสดงรายการเครื่องจักรทั้งหมด
+            if (!empty($row['MachineIDs']) && $row['MachineIDs'] != $row['MachineID']) {
+                $machineIds = explode(',', $row['MachineIDs']);
+                $machineNames = [];
+                foreach ($machineIds as $machineId) {
+                    $machineId = trim($machineId);
+                    if (!empty($machineId)) {
+                        // ดึงชื่อเครื่องจักรแต่ละตัว
+                        $machineSql = "SELECT MachineName FROM Machines WHERE MachineID = ?";
+                        $machineStmt = sqlsrv_query($conn, $machineSql, [intval($machineId)]);
+                        if ($machineStmt && $machineRow = sqlsrv_fetch_array($machineStmt, SQLSRV_FETCH_ASSOC)) {
+                            $machineNames[] = $machineRow['MachineName'];
+                        }
+                    }
+                }
+                if (!empty($machineNames)) {
+                    $row['MachineName'] = implode(', ', $machineNames);
+                }
+            }
+            
             $tasks[] = $row;
         }
         echo json_encode($tasks);
@@ -120,13 +145,14 @@ if (isset($_GET['action'])) {
     if ($action === 'add') {
         $data = json_decode(file_get_contents('php://input'), true);
         
-        $fields = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'MachineID', 'DepartmentID', 'Status', 'Details', 'StartTime', 'EndTime', 'CreatedByUserID'];
+        $fields = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'MachineID', 'MachineIDs', 'DepartmentID', 'Status', 'Details', 'StartTime', 'EndTime', 'CreatedByUserID'];
         $params = [
             $data['JobName'] ?? '',
             $data['LotNumber'] ?? '',
             (int)($data['PlannedLotSize'] ?? 0),
             (int)($data['ActualOutput'] ?? 0),
             (int)($data['MachineID'] ?? 0),
+            $data['MachineIDs'] ?? '',
             (int)($data['DepartmentID'] ?? 0),
             $data['Status'] ?? 'planning',
             $data['Details'] ?? '',
@@ -179,8 +205,8 @@ if (isset($_GET['action'])) {
         $fields = [];
         $params = [];
         
-        // รายการฟิลด์ที่สามารถอัปเดตได้ (ยกเว้น JobName ชั่วคราว)
-$updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'MachineID', 'Status', 'StartTime', 'EndTime', 'Details', 'DepartmentID'];
+        // รายการฟิลด์ที่สามารถอัปเดตได้ (เพิ่ม MachineIDs)
+$updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'MachineID', 'MachineIDs', 'Status', 'StartTime', 'EndTime', 'Details', 'DepartmentID'];
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
                 $fields[] = "$field=?";

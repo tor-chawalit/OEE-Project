@@ -769,7 +769,133 @@ class ConfirmCompleteManager {
             bsToast.show();
         }
     }
+    /**
+     * ฟังก์ชันสำหรับยืนยันงานที่เสร็จสิ้นแล้ว (เพื่อใช้กับ TaskManager)
+     * เมื่อเรียกใช้ฟังก์ชันนี้ งานจะหายไปจากปฏิทิน
+     * @param {number} taskId - ID ของงานที่ต้องการยืนยัน
+     * @returns {Promise<boolean>} - true หากยืนยันสำเร็จ
+     */
+    static async confirmTaskCompletion(taskId) {
+        try {
+            // ส่งข้อมูลไปยัง backend API เพื่อยืนยันงาน
+            const response = await fetch('tasks.php?action=confirm_complete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    JobID: taskId,
+                    // ใช้ข้อมูลเริ่มต้นสำหรับการยืนยันจาก TaskManager
+                    ActualStartTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    ActualEndTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    ShiftHours: 8.0,
+                    OvertimeMinutes: 0,
+                    TookBreakMorning: 0,
+                    TookBreakLunch: 60,
+                    TookBreakEvening: 0,
+                    IdealRunRateUsed: 0,
+                    TotalPieces: 0,
+                    RejectPieces: 0,
+                    TotalDowntimeMinutes: 0,
+                    PlannedProductionMinutes: 0,
+                    RunTimeMinutes: 0,
+                    GoodPieces: 0,
+                    OEE_Availability: 0,
+                    OEE_Performance: 0,
+                    OEE_Quality: 0,
+                    OEE_Total: 0,
+                    ConfirmedByUserID: 1
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'การยืนยันงานล้มเหลว');
+            }
+
+            console.log(`Task ${taskId} confirmed successfully`);
+            return true;
+
+        } catch (error) {
+            console.error('Error confirming task:', error);
+            return false;
+        }
+    }
 }
+
+/**
+ * ฟังก์ชันสำหรับยืนยันงานที่เสร็จสิ้นแล้ว (Global function สำหรับใช้กับ TaskManager)
+ * เมื่อเรียกใช้ฟังก์ชันนี้ งานจะหายไปจากปฏิทิน
+ * @param {number} taskId - ID ของงานที่ต้องการยืนยัน
+ * @returns {Promise<boolean>} - true หากยืนยันสำเร็จ
+ */
+async function confirmTaskCompletion(taskId) {
+    return await ConfirmCompleteManager.confirmTaskCompletion(taskId);
+}
+
+/**
+ * ฟังก์ชันตั้งค่าปุ่มยืนยันสำหรับใช้ในหน้าอื่น
+ * เพื่อความสะดวกในการ integrate กับหน้าอื่นๆ
+ */
+function setupConfirmButton() {
+    // ดึง task ID จาก URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const taskId = urlParams.get('id');
+    
+    if (!taskId) {
+        console.error('No task ID found in URL');
+        return;
+    }
+    
+    // หาปุ่มยืนยัน
+    const confirmButton = document.getElementById('confirmCompleteBtn');
+    
+    if (confirmButton) {
+        confirmButton.addEventListener('click', async function(e) {
+            e.preventDefault();
+            
+            // แสดง loading หรือ disable ปุ่ม
+            confirmButton.disabled = true;
+            confirmButton.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>กำลังยืนยัน...';
+            
+            try {
+                // ยืนยันงาน
+                const success = await confirmTaskCompletion(parseInt(taskId));
+                
+                if (success) {
+                    // แสดงข้อความสำเร็จ
+                    alert('ยืนยันงานสำเร็จ! งานจะหายไปจากปฏิทิน');
+                    
+                    // redirect กลับไปหน้าหลัก
+                    window.location.href = 'index.html';
+                } else {
+                    // แสดงข้อความผิดพลาด
+                    alert('เกิดข้อผิดพลาดในการยืนยันงาน');
+                    
+                    // เปิดปุ่มกลับมา
+                    confirmButton.disabled = false;
+                    confirmButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>ยืนยันเสร็จสิ้น';
+                }
+            } catch (error) {
+                console.error('Confirm error:', error);
+                alert('เกิดข้อผิดพลาดในการยืนยันงาน: ' + error.message);
+                
+                // เปิดปุ่มกลับมา
+                confirmButton.disabled = false;
+                confirmButton.innerHTML = '<i class="bi bi-check-circle me-2"></i>ยืนยันเสร็จสิ้น';
+            }
+        });
+    }
+}
+
+// Export functions for global use
+window.confirmTaskCompletion = confirmTaskCompletion;
+window.setupConfirmButton = setupConfirmButton;
+window.ConfirmCompleteManager = ConfirmCompleteManager;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

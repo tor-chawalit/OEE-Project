@@ -546,11 +546,17 @@
   position: relative;
   vertical-align: top;
   padding: 2px;
+  overflow: visible; /* ให้ task สามารถยาวข้าม cell ได้ */
 }
 
 .calendar-cell:hover {
   background-color: #f8f9fa;
   cursor: pointer;
+}
+
+/* ป้องกัน hover effect เมื่อมี task */
+.calendar-cell.has-task:hover {
+  background-color: #fff;
 }
 
 .time-slot .task-item,
@@ -568,30 +574,124 @@
   margin-right: 0;
 }
 
-/* Task Styles */
-/* ปรับให้ task-item อยู่ใน cell แบบ table ไม่ลอย */
-/* Compact summary card for calendar cell */
-/* Compact summary card for calendar cell */
+/* Task Styles - แนวตั้ง */
 .task-item {
   position: static;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
   min-width: 0;
   max-width: 100%;
   background-color: #007bff;
   color: white;
-  padding: 2px 6px;
+  padding: 4px 6px;
   border-radius: 4px;
-  font-size: 0.85em;
+  font-size: 0.75em;
   cursor: pointer;
   z-index: 1;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   margin-bottom: 2px;
-  transition: box-shadow 0.15s, background 0.15s;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+/* Task Content Structure */
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2px;
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+.task-department {
+  font-weight: 600;
+  background: rgba(255,255,255,0.2);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 0.8em;
+}
+
+.task-time {
+  font-size: 0.8em;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.task-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1em;
+}
+
+.task-machine {
+  font-size: 0.85em;
+  opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-machine .bi {
+  font-size: 0.8em;
+}
+
+/* สไตล์สำหรับ task แบบยาวแนวตั้งหลายชั่วโมง */
+.task-item[style*="position: absolute"] {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  border-radius: 6px;
+  border-left: 4px solid rgba(0,0,0,0.2);
+  font-weight: 500;
+  z-index: 10;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+  backdrop-filter: blur(2px);
+  transition: all 0.2s ease;
+  overflow: hidden;
+  padding: 8px;
+  line-height: 1.3;
+}
+
+.task-item[style*="position: absolute"] .task-header {
+  margin-bottom: 4px;
+}
+
+.task-item[style*="position: absolute"] .task-title {
+  margin-bottom: 4px;
+  font-size: 1.1em;
+}
+
+.task-item[style*="position: absolute"] .task-machine {
+  margin-top: auto;
+}
+
+.task-item[style*="position: absolute"]:hover {
+  box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+  transform: translateX(2px);
+  z-index: 15;
+}
+
+/* สไตล์สำหรับงานข้ามวัน */
+.task-item[style*="bi-arrow-down"] {
+  border-bottom: 3px dashed #007bff;
+  border-radius: 6px 6px 0 0;
+}
+
+.task-item .bi-arrow-down {
+  margin-bottom: 4px;
+  font-size: 1.1em;
+  display: block;
+  text-align: center;
 }
 
 /* Block style for multi-hour task */
@@ -647,39 +747,59 @@
 /* Status Colors - Override by Status */
 
 .task-item.pending {
-  background: #e9ecef !important; /* เทาอ่อน */
-  color: #6c757d !important;     /* เทาเข้ม */
-  border-left: 5px solid #adb5bd !important; /* เทา */
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important; /* ฟ้า - เหมือน bg-gradient-primary */
+  color: white !important;
+  border-left: 5px solid #004085 !important; /* ฟ้าเข้ม */
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3) !important;
   opacity: 1 !important;
   animation: none !important;
+}
+
+.task-item.pending .task-department {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
 }
 
 .task-item.in-progress {
-  background: #fffbe6 !important; /* เหลืองอ่อน */
-  color: #856404 !important;     /* เหลืองเข้ม */
-  border-left: 5px solid #ffc107 !important; /* เหลือง */
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important; /* เหลือง - เหมือน bg-gradient-warning */
+  color: #212529 !important; /* ข้อความเข้ม */
+  border-left: 5px solid #b8860b !important; /* เหลืองเข้ม */
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3) !important;
   opacity: 1 !important;
   animation: none !important;
+}
+
+.task-item.in-progress .task-department {
+  background: rgba(33, 37, 41, 0.15) !important;
+  color: #212529 !important;
 }
 
 .task-item.completed {
-  background: #cce7ff !important; /* ฟ้าอ่อน - รอยืนยัน */
-  color: #0056b3 !important;     /* ฟ้าเข้ม */
-  border-left: 5px solid #007bff !important; /* ฟ้า */
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important; /* เขียว - เหมือน bg-gradient-success */
+  color: white !important;
+  border-left: 5px solid #155724 !important; /* เขียวเข้ม */
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3) !important;
   opacity: 1 !important;
   animation: none !important;
 }
 
+.task-item.completed .task-department {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
+}
+
 .task-item.cancelled {
-  background: #f8d7da !important; /* แดงอ่อน */
-  color: #721c24 !important;     /* แดงเข้ม */
-  border-left: 5px solid #dc3545 !important; /* แดง */
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important; /* แดง - เหมือน bg-gradient-danger */
+  color: white !important;
+  border-left: 5px solid #a71e2a !important; /* แดงเข้ม */
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3) !important;
   opacity: 1 !important;
   animation: none !important;
+}
+
+.task-item.cancelled .task-department {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
 }
 
 /* Enhanced Cards */

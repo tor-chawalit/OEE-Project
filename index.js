@@ -230,12 +230,12 @@ class FormStepManager {
 
     // Special validation for each step
     if (step === 1) {
-      // Validate department and machine selection
+      // Validate department and machine selection (เปลี่ยนจาก radio เป็น checkbox)
       const departmentSelect = document.getElementById('department');
-      const selectedMachine = document.querySelector('#machineCheckboxGroup input[type="radio"]:checked');
+      const selectedMachines = document.querySelectorAll('#machineCheckboxGroup input[type="checkbox"]:checked');
       
       console.log('Department selected:', departmentSelect ? departmentSelect.value : 'none');
-      console.log('Machine selected:', selectedMachine ? selectedMachine.value : 'none');
+      console.log('Machines selected:', selectedMachines.length);
       
       if (!departmentSelect || !departmentSelect.value) {
         isValid = false;
@@ -243,21 +243,28 @@ class FormStepManager {
         if (departmentSelect) departmentSelect.classList.add('is-invalid');
       }
       
-      if (!selectedMachine) {
-        showToast('กรุณาเลือกเครื่องจักร', 'warning');
+      if (selectedMachines.length === 0) {
+        showToast('กรุณาเลือกเครื่องจักรอย่างน้อย 1 เครื่อง', 'warning');
         isValid = false;
-        console.log('Machine validation failed');
+        console.log('Machine validation failed - no machines selected');
       }
     }
 
     if (step === 2) {
       // Validate job details
-      const jobName = document.getElementById('jobName');
+      const productName = document.getElementById('productName');
+      const productSize = document.querySelector('input[name="productSize"]:checked');
       const lotNumber = document.getElementById('lotNumber');
       const lotSize = document.getElementById('lotSize');
+      const workerCount = document.getElementById('workerCount');
       
-      if (jobName && !jobName.value.trim()) {
-        jobName.classList.add('is-invalid');
+      if (productName && !productName.value.trim()) {
+        productName.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      if (!productSize) {
+        showToast('กรุณาเลือกขนาดผลิตภัณฑ์', 'warning');
         isValid = false;
       }
       
@@ -268,6 +275,11 @@ class FormStepManager {
       
       if (lotSize && (!lotSize.value || parseInt(lotSize.value) <= 0)) {
         lotSize.classList.add('is-invalid');
+        isValid = false;
+      }
+      
+      if (workerCount && (!workerCount.value || parseInt(workerCount.value) <= 0)) {
+        workerCount.classList.add('is-invalid');
         isValid = false;
       }
     }
@@ -298,25 +310,21 @@ class FormStepManager {
   }
 
   setupDurationCalculation() {
-    const startHour = document.getElementById('startHour');
-    const startMinute = document.getElementById('startMinute');
-    const endHour = document.getElementById('endHour');
-    const endMinute = document.getElementById('endMinute');
+    const startTime = document.getElementById('startTime');
+    const endTime = document.getElementById('endTime');
     const durationDisplay = document.getElementById('durationDisplay');
 
     const calculateDuration = () => {
-      if (startHour.value && startMinute.value && endHour.value && endMinute.value) {
-        const startTime = new Date();
-        startTime.setHours(parseInt(startHour.value), parseInt(startMinute.value), 0, 0);
+      if (startTime.value && endTime.value) {
+        const startDateTime = new Date(`2000-01-01T${startTime.value}:00`);
+        const endDateTime = new Date(`2000-01-01T${endTime.value}:00`);
         
-        const endTime = new Date();
-        endTime.setHours(parseInt(endHour.value), parseInt(endMinute.value), 0, 0);
-        
-        if (endTime <= startTime) {
-          endTime.setDate(endTime.getDate() + 1);
+        // ถ้าเวลาสิ้นสุดน้อยกว่าเวลาเริ่ม ให้เพิ่มวันถัดไป
+        if (endDateTime <= startDateTime) {
+          endDateTime.setDate(endDateTime.getDate() + 1);
         }
         
-        const diffMs = endTime - startTime;
+        const diffMs = endDateTime - startDateTime;
         const hours = Math.floor(diffMs / (1000 * 60 * 60));
         const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
         
@@ -326,7 +334,7 @@ class FormStepManager {
       }
     };
 
-    [startHour, startMinute, endHour, endMinute].forEach(element => {
+    [startTime, endTime].forEach(element => {
       if (element) {
         element.addEventListener('change', calculateDuration);
       }
@@ -358,19 +366,29 @@ class FormStepManager {
   }
 
   updateStatusCounts() {
-    const tasks = TaskManager.getAllTasks();
+    // นับจากงานที่แสดงในปฏิทิน (ถูกฟิลเตอร์แล้ว) 
+    const tasks = TaskManager.getFilteredTasks();
     const counts = {
       planning: 0,
       'in-progress': 0,
       completed: 0,
+      confirmed: 0,
       cancelled: 0
     };
 
     tasks.forEach(task => {
-      if (counts.hasOwnProperty(task.Status)) {
+      if (task.ConfirmedAt) {
+        // งานที่มี ConfirmedAt จะนับเป็น confirmed (แต่ไม่แสดงในปฏิทินแล้ว)
+        counts.confirmed++;
+      } else if (counts.hasOwnProperty(task.Status)) {
         counts[task.Status]++;
       }
     });
+    
+    // นับงานที่ยืนยันแล้วแยกต่างหาก (เพราะไม่แสดงในปฏิทิน)
+    const allTasks = TaskManager.getAllTasks();
+    const confirmedTasks = allTasks.filter(task => task.ConfirmedAt);
+    counts.confirmed = confirmedTasks.length;
 
     // Update count displays
     const planningCountEl = document.getElementById('planningCount');
@@ -380,7 +398,7 @@ class FormStepManager {
 
     if (planningCountEl) planningCountEl.textContent = counts.planning;
     if (inProgressCountEl) inProgressCountEl.textContent = counts['in-progress'];
-    if (completedCountEl) completedCountEl.textContent = counts.completed;
+    if (completedCountEl) completedCountEl.textContent = counts.completed + counts.confirmed; // รวมงานที่ยืนยันแล้ว
     if (cancelledCountEl) cancelledCountEl.textContent = counts.cancelled;
   }
 
@@ -397,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
   formStepManager.init(); // เพิ่มการเรียก init()
 });
 
-// Enhanced Machine Selection Rendering
+// Enhanced Machine Selection Rendering - เปลี่ยนจาก radio เป็น checkbox
 function renderMachineCheckboxes(dept) {
   const machineCheckboxGroup = document.getElementById("machineCheckboxGroup");
   if (!machineCheckboxGroup) return;
@@ -407,22 +425,13 @@ function renderMachineCheckboxes(dept) {
   if (machineOptions[dept] && machineOptions[dept].length > 0) {
     machineOptions[dept].forEach(opt => {
       const optionDiv = document.createElement('div');
-      optionDiv.className = 'machine-option';
+      optionDiv.className = 'machine-option mb-2';
       optionDiv.innerHTML = `
-        <input type="radio" id="machine${opt.id}" name="machine" value="${opt.id}" required>
-        <label for="machine${opt.id}" class="mb-0 flex-grow-1">${opt.text}</label>
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="machine${opt.id}" name="machines[]" value="${opt.id}">
+          <label class="form-check-label" for="machine${opt.id}">${opt.text}</label>
+        </div>
       `;
-      
-      optionDiv.addEventListener('click', function() {
-        const radio = optionDiv.querySelector('input[type="radio"]');
-        radio.checked = true;
-        
-        // Update visual selection
-        document.querySelectorAll('.machine-option').forEach(el => {
-          el.classList.remove('selected');
-        });
-        optionDiv.classList.add('selected');
-      });
       
       machineCheckboxGroup.appendChild(optionDiv);
     });
@@ -554,8 +563,50 @@ class TaskManager {
     return [...tasks];
   }
   static getFilteredTasks() {
-    // แสดงงานทั้งหมดโดยไม่มีการกรอง
-    return this.getAllTasks();
+    // กรองงานที่ยืนยันสุดท้ายแล้ว (มี ConfirmedAt) ออกจากปฏิทิน
+    // งานที่เสร็จสิ้น (completed) แต่ยังไม่มี ConfirmedAt ยังแสดงในปฏิทินจนกว่าจะกดยืนยันที่หน้า confirm-complete
+    let filteredTasks = this.getAllTasks().filter(task => !task.ConfirmedAt);
+    
+    // ใช้ฟิลเตอร์จากฟอร์ม
+    const departmentFilter = document.getElementById("departmentFilter")?.value;
+    const statusFilter = document.getElementById("statusFilter")?.value;
+    const keywordFilter = document.getElementById("keywordFilter")?.value?.toLowerCase();
+    const dateFilter = document.getElementById("dateFilter")?.value;
+    
+    // ฟิลเตอร์ตามแผนก
+    if (departmentFilter) {
+      filteredTasks = filteredTasks.filter(task => 
+        task.DepartmentName && task.DepartmentName === departmentFilter
+      );
+    }
+    
+    // ฟิลเตอร์ตามสถานะ
+    if (statusFilter) {
+      filteredTasks = filteredTasks.filter(task => task.Status === statusFilter);
+    }
+    
+    // ฟิลเตอร์ตามคำค้นหา (ค้นหาในชื่องาน, LotNumber, รายละเอียด)
+    if (keywordFilter) {
+      filteredTasks = filteredTasks.filter(task => 
+        (task.JobName && task.JobName.toLowerCase().includes(keywordFilter)) ||
+        (task.LotNumber && task.LotNumber.toLowerCase().includes(keywordFilter)) ||
+        (task.Details && task.Details.toLowerCase().includes(keywordFilter))
+      );
+    }
+    
+    // ฟิลเตอร์ตามวันที่
+    if (dateFilter) {
+      filteredTasks = filteredTasks.filter(task => {
+        if (task.StartTime) {
+          const taskDate = new Date(task.StartTime);
+          const filterDate = new Date(dateFilter);
+          return taskDate.toDateString() === filterDate.toDateString();
+        }
+        return false;
+      });
+    }
+    
+    return filteredTasks;
   }
   static async loadFromDB() {
     try {
@@ -663,6 +714,34 @@ class TaskManager {
       throw e;
     }
   }
+  
+  // ฟังก์ชันสำหรับยืนยันงานที่เสร็จสิ้นแล้ว (เรียกจากหน้า confirm-complete)
+  static async confirmTask(taskId) {
+    try {
+      const res = await fetch("tasks.php?action=confirm_complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ JobID: taskId, ConfirmedByUserID: 1 }),
+      });
+      
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(
+          `Failed to confirm task: HTTP ${res.status} ${res.statusText}\n${text}`
+        );
+      }
+      
+      const result = await res.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Confirm failed');
+      }
+      
+      return result;
+    } catch (e) {
+      console.error("TaskManager.confirmTask error:", e);
+      throw e;
+    }
+  }
 }
 
 // Calendar Rendering
@@ -760,50 +839,100 @@ class CalendarRenderer {
     filteredTasks.forEach((task, index) => {
       console.log(`Processing task ${index + 1}:`, task);
       
-      // ถ้ามี StartTime และ EndTime ให้แสดงตามเวลาจริง
+      // ถ้ามี StartTime และ EndTime ให้แสดงตามเวลาจริง (แปลงเป็นเวลาไทย)
       if (task.StartTime && task.EndTime) {
         const taskStart = new Date(task.StartTime);
-        console.log(`Task start time:`, taskStart);
+        const taskEnd = new Date(task.EndTime);
         
-        // คำนวณวันของสัปดาห์ (จันทร์ = 0, อาทิตย์ = 6)
-        let dayIdx = taskStart.getDay() === 0 ? 6 : taskStart.getDay() - 1;
-        let startHour = taskStart.getHours();
+        // แปลงเป็นเวลาไทย (UTC+7)
+        const taskStartThai = new Date(taskStart.getTime() + (7 * 60 * 60 * 1000));
+        const taskEndThai = new Date(taskEnd.getTime() + (7 * 60 * 60 * 1000));
         
-        console.log(`Day index: ${dayIdx}, Start hour: ${startHour}`);
+        console.log(`Task Thai time: ${task.JobName} - Start: ${taskStartThai}, End: ${taskEndThai}`);
         
-        // ตรวจสอบว่าอยู่ในสัปดาห์ที่กำลังดูอยู่หรือไม่ (ไม่จำกัดเฉพาะสัปดาห์ปัจจุบัน)
+        // คำนวณวันของสัปดาห์ (จันทร์ = 0, อาทิตย์ = 6) - ใช้เวลาไทย
+        let startDayIdx = taskStartThai.getDay() === 0 ? 6 : taskStartThai.getDay() - 1;
+        let startHour = taskStartThai.getHours();
+        
+        // ตรวจสอบว่าอยู่ในสัปดาห์ที่กำลังดูอยู่หรือไม่ (ใช้เวลาไทย)
         const viewingWeekStart = new Date(currentWeekStart);
         const viewingWeekEnd = new Date(currentWeekStart);
         viewingWeekEnd.setDate(viewingWeekEnd.getDate() + 6);
         viewingWeekEnd.setHours(23, 59, 59, 999);
         
-        console.log(`Viewing week range: ${viewingWeekStart} to ${viewingWeekEnd}`);
-        console.log(`Task in viewing week: ${taskStart >= viewingWeekStart && taskStart <= viewingWeekEnd}`);
+        console.log(`Viewing week: ${viewingWeekStart} to ${viewingWeekEnd}`);
+        console.log(`Task in week: ${taskStartThai >= viewingWeekStart && taskStartThai <= viewingWeekEnd}`);
         
-        // แสดงงานทุกอันที่อยู่ในสัปดาห์ที่กำลังดูอยู่ (ไม่ว่าจะเป็นอดีต ปัจจุบัน หรืออนาคต)
-        if (taskStart >= viewingWeekStart && taskStart <= viewingWeekEnd) {
-          // หาเซลล์ที่จะแสดงงาน
-          const cell = calendarBody.querySelector(`.calendar-cell[data-day="${dayIdx}"][data-hour="${startHour}"]`);
-          console.log(`Looking for cell with day=${dayIdx}, hour=${startHour}:`, cell);
+        // แสดงงานถ้าอยู่ในสัปดาห์ที่กำลังดู (ใช้เวลาไทย)
+        if (taskStartThai >= viewingWeekStart && taskStartThai <= viewingWeekEnd) {
+          // คำนวณระยะเวลาและจำนวนชั่วโมง (ใช้เวลาไทย)
+          const durationMs = taskEndThai.getTime() - taskStartThai.getTime();
+          const durationHours = Math.ceil(durationMs / (1000 * 60 * 60)); // ปัดขึ้นเป็นชั่วโมง
           
-          if (cell) {
+          console.log(`Duration: ${durationHours} hours`);
+          
+          // หา cell เริ่มต้น
+          const startCell = calendarBody.querySelector(`.calendar-cell[data-day="${startDayIdx}"][data-hour="${startHour}"]`);
+          
+          if (startCell) {
+            // สร้าง task element แบบยาวแนวตั้ง
             const taskElement = this.createTaskElement(task);
             if (taskElement) {
-              taskElement.style.position = "relative";
-              taskElement.style.margin = "2px 0";
-              taskElement.style.padding = "4px 8px";
+              // กำหนดสไตล์สำหรับ task แบบยาวแนวตั้ง
+              taskElement.style.position = "absolute";
+              taskElement.style.top = "2px";
+              taskElement.style.left = "2px";
+              taskElement.style.right = "2px";
+              taskElement.style.backgroundColor = this.getTaskColor(task.Status);
+              taskElement.style.border = "none";
+              taskElement.style.borderRadius = "6px";
+              taskElement.style.padding = "6px 8px";
               taskElement.style.fontSize = "0.8em";
               taskElement.style.cursor = "pointer";
+              taskElement.style.zIndex = "10";
+              taskElement.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+              taskElement.style.overflow = "hidden";
+              taskElement.style.whiteSpace = "nowrap";
+              taskElement.style.textOverflow = "ellipsis";
+              taskElement.style.color = "#333";
+              taskElement.style.fontWeight = "500";
+              
+              // คำนวณความสูงตามจำนวนชั่วโมง (แนวตั้ง)
+              const cellHeight = startCell.offsetHeight || 48;
+              const totalHeight = durationHours * cellHeight - 4;
+              taskElement.style.height = `${totalHeight}px`;
+              
+              // ตรวจสอบว่าข้ามวันหรือไม่ (ใช้เวลาไทย)
+              const isCrossDay = taskEndThai.getDate() !== taskStartThai.getDate() || 
+                               taskEndThai.getMonth() !== taskStartThai.getMonth() ||
+                               taskEndThai.getFullYear() !== taskStartThai.getFullYear();
+              
+              if (isCrossDay) {
+                // ถ้าข้ามวัน ให้แสดงถึงสิ้นวัน (23:59)
+                const endOfDayHour = 23;
+                const hoursToEndOfDay = endOfDayHour - startHour + 1;
+                taskElement.style.height = `${hoursToEndOfDay * cellHeight - 4}px`;
+                taskElement.innerHTML = `<i class="bi bi-arrow-down"></i> ${taskElement.textContent}`;
+                taskElement.title = `งานข้ามวัน: ${taskStartThai.toLocaleString('th-TH')} - ${taskEndThai.toLocaleString('th-TH')}`;
+                taskElement.style.borderBottom = "3px dashed #007bff";
+              } else {
+                taskElement.title = `ระยะเวลา: ${durationHours} ชั่วโมง (${taskStartThai.toLocaleString('th-TH')} - ${taskEndThai.toLocaleString('th-TH')})`;
+              }
+              
               taskElement.onclick = () => ModalManager.showTaskDetail(task);
-              cell.appendChild(taskElement);
-              cell.classList.add("has-task");
-              console.log(`Task added to calendar:`, task.JobName || task.LotNumber);
+              
+              // เพิ่ม task element ลงใน cell เริ่มต้น
+              startCell.style.position = "relative";
+              startCell.appendChild(taskElement);
+              startCell.classList.add("has-task");
+              
+              console.log(`Task "${task.JobName}" added vertically with ${durationHours}h duration`);
             }
           } else {
-            console.warn(`Cell not found for day=${dayIdx}, hour=${startHour}`);
+            console.warn(`Start cell not found for day=${startDayIdx}, hour=${startHour}`);
           }
         } else {
-          console.log(`Task outside current week, skipping:`, task.JobName || task.LotNumber);
+          console.log(`Task outside current week: ${task.JobName}`);
         }
       } else {
         // ถ้าไม่มีเวลา ให้แสดงในช่องเวลา 08:00 ของวันปัจจุบัน
@@ -834,11 +963,69 @@ class CalendarRenderer {
     if (status === "planning") statusClass = "pending";
     else if (status === "in-progress") statusClass = "in-progress";
     else if (status === "completed") statusClass = "completed";
+    else if (status === "confirmed") statusClass = "completed"; // แสดงเหมือนกับ completed
     else if (status === "cancelled") statusClass = "cancelled";
     let taskClasses = `task-item ${statusClass}`;
     taskElement.className = taskClasses;
-    taskElement.textContent = `${task.JobName || task.LotNumber || 'Job'} - ${task.MachineName || 'Machine'}`;
+    
+    // สร้างเนื้อหา task แบบครบถ้วน
+    const departmentName = task.DepartmentName || 'แผนก';
+    // ปรับให้แสดงผลิตภัณฑ์และขนาด หรือ JobName เดิม หรือ LotNumber
+    let displayName = '';
+    if (task.ProductName && task.ProductSize) {
+      displayName = `${task.ProductName} (${task.ProductSize})`;
+    } else if (task.JobName) {
+      displayName = task.JobName;
+    } else {
+      displayName = task.LotNumber || 'Job';
+    }
+    const machineName = task.MachineName || 'Machine';
+    
+    // สร้าง HTML structure สำหรับ task
+    taskElement.innerHTML = `
+      <div class="task-header">
+        <div class="task-department">${departmentName}</div>
+        <div class="task-time">${this.formatTaskTime(task)}</div>
+      </div>
+      <div class="task-title">${displayName}</div>
+      <div class="task-machine">
+        <i class="bi bi-gear-fill me-1"></i>${machineName}
+      </div>
+    `;
+    
     return taskElement;
+  }
+
+  static formatTaskTime(task) {
+    if (task.StartTime && task.EndTime) {
+      const start = new Date(task.StartTime);
+      const end = new Date(task.EndTime);
+      
+      // แปลงเป็นเวลาไทย (UTC+7)
+      const startThai = new Date(start.getTime() + (7 * 60 * 60 * 1000));
+      const endThai = new Date(end.getTime() + (7 * 60 * 60 * 1000));
+      
+      const startTime = startThai.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      const endTime = endThai.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      return `${startTime}-${endTime}`;
+    }
+    return '';
+  }
+
+  static getTaskColor(status) {
+    switch (status) {
+      case "planning":
+        return "linear-gradient(135deg, #007bff 0%, #0056b3 100%)"; // ฟ้า - เหมือน bg-gradient-primary
+      case "in-progress":
+        return "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)"; // เหลือง - เหมือน bg-gradient-warning
+      case "completed":
+      case "confirmed":
+        return "linear-gradient(135deg, #28a745 0%, #1e7e34 100%)"; // เขียว - เหมือน bg-gradient-success
+      case "cancelled":
+        return "linear-gradient(135deg, #dc3545 0%, #c82333 100%)"; // แดง - เหมือน bg-gradient-danger
+      default:
+        return "linear-gradient(135deg, #007bff 0%, #0056b3 100%)"; // ฟ้า เป็นค่าเริ่มต้น
+    }
   }
 }
 
@@ -859,6 +1046,9 @@ class ModalManager {
     } else if (task.Status === "completed") {
       statusText = "เสร็จสิ้น";
       statusColor = "success";
+    } else if (task.Status === "confirmed") {
+      statusText = "ยืนยันแล้ว";
+      statusColor = "info";
     } else if (task.Status === "cancelled") {
       statusText = "ยกเลิก";
       statusColor = "danger";
@@ -909,6 +1099,12 @@ class ModalManager {
               <span class="detail-label">เป้าหมายผลิต:</span>
               <span class="detail-value">
                 <span class="badge bg-success">${task.ActualOutput || "0"} ชิ้น</span>
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">จำนวนคน:</span>
+              <span class="detail-value">
+                <span class="badge bg-warning text-dark">${task.WorkerCount || "0"} คน</span>
               </span>
             </div>
             ${task.StartTime ? `
@@ -994,6 +1190,12 @@ class ModalManager {
       detailHTML += `
         <button id="viewOEEBtn" class="btn btn-info btn-lg">
           <i class="bi bi-graph-up-arrow me-2"></i>Confirm Product
+        </button>
+      `;
+    } else if (task.Status === "confirmed") {
+      detailHTML += `
+        <button id="viewOEEBtn" class="btn btn-secondary btn-lg" disabled>
+          <i class="bi bi-check2-circle me-2"></i>ยืนยันแล้ว
         </button>
       `;
     } else if (task.Status === "in-progress") {
@@ -1101,7 +1303,8 @@ class ModalManager {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // ไม่ต้องล้างฟิลเตอร์เพราะไม่มีการกรองแล้ว
+  // ล้างฟิลเตอร์เมื่อโหลดหน้าเพื่อแสดงงานทั้งหมด
+  clearAllFiltersOnLoad();
   await CalendarRenderer.render();
 });
 
@@ -1135,34 +1338,65 @@ function fillAddJobFormWithTask(task) {
     renderMachineCheckboxes(task.DepartmentID.toString());
   }
   
-  setField("jobName", task.JobName || "");
+  // เซ็ตผลิตภัณฑ์และขนาด (แยกจาก JobName ถ้าจำเป็น)
+  if (task.ProductName) {
+    setField("productName", task.ProductName);
+  }
+  if (task.ProductSize) {
+    const sizeRadio = document.querySelector(`input[name="productSize"][value="${task.ProductSize}"]`);
+    if (sizeRadio) {
+      sizeRadio.checked = true;
+    }
+  }
+  
   setField("lotNumber", task.LotNumber || "");
   setField("lotSize", task.PlannedLotSize || "");
   setField("actualOutput", task.ActualOutput || "");
+  setField("workerCount", task.WorkerCount || "");
   setField("details", task.Details || "");
   setField("status", task.Status || "planning");
   
-  // เซ็ตวันที่และเวลา ถ้ามี
+  // เซ็ตวันที่และเวลา ถ้ามี (ใช้เวลาไทย)
   if (task.StartTime) {
     const start = new Date(task.StartTime);
-    setField("workDate", start.toISOString().slice(0, 10));
-    setField("startHour", start.getHours().toString().padStart(2, "0"));
-    setField("startMinute", start.getMinutes().toString().padStart(2, "0"));
+    // แปลงเป็นเวลาไทย (UTC+7)
+    const startThai = new Date(start.getTime() + (7 * 60 * 60 * 1000));
+    setField("workDate", startThai.toISOString().slice(0, 10));
+    
+    // แปลงเป็น time format สำหรับ input type="time"
+    const startTime = startThai.toTimeString().slice(0, 5); // HH:MM
+    setField("startTime", startTime);
   }
   
   if (task.EndTime) {
     const end = new Date(task.EndTime);
-    setField("endHour", end.getHours().toString().padStart(2, "0"));
-    setField("endMinute", end.getMinutes().toString().padStart(2, "0"));
+    // แปลงเป็นเวลาไทย (UTC+7)
+    const endThai = new Date(end.getTime() + (7 * 60 * 60 * 1000));
+    
+    // แปลงเป็น time format สำหรับ input type="time"
+    const endTime = endThai.toTimeString().slice(0, 5); // HH:MM
+    setField("endTime", endTime);
   }
   
-  // เลือกเครื่องจักรที่ถูกต้อง
-  if (task.MachineID) {
-    setTimeout(() => {
-      const machineRadio = document.getElementById(`machine_${task.MachineID}`);
-      if (machineRadio) machineRadio.checked = true;
-    }, 100);
-  }
+  // เลือกเครื่องจักรที่ถูกต้อง (checkbox multiple selection)
+  setTimeout(() => {
+    if (task.MachineIDs) {
+      // ถ้ามี MachineIDs (รายการเครื่องจักรหลายเครื่อง)
+      const machineIds = task.MachineIDs.split(',').map(id => parseInt(id.trim()));
+      machineIds.forEach(machineId => {
+        const machineCheckbox = document.getElementById(`machine${machineId}`);
+        if (machineCheckbox) {
+          machineCheckbox.checked = true;
+        }
+      });
+    } else if (task.MachineID) {
+      // ถ้ามีแค่ MachineID เดียว (backward compatibility)
+      const machineCheckbox = document.getElementById(`machine${task.MachineID}`);
+      if (machineCheckbox) {
+        machineCheckbox.checked = true;
+      }
+    }
+  }, 100);
   
   window.selectedEditTask = task;
 }
@@ -1179,6 +1413,16 @@ function setupAddJobFormHandler() {
         return;
       }
       
+      if (!formData.get("productName")) {
+        showToast("กรุณาเลือกผลิตภัณฑ์", "danger");
+        return;
+      }
+      
+      if (!formData.get("productSize")) {
+        showToast("กรุณาเลือกขนาดผลิตภัณฑ์", "danger");
+        return;
+      }
+      
       if (!formData.get("lotNumber")) {
         showToast("กรุณากรอก Lot Number", "danger");
         return;
@@ -1190,48 +1434,72 @@ function setupAddJobFormHandler() {
         return;
       }
       
+      const WorkerCount = parseInt(formData.get("workerCount"), 10);
+      if (isNaN(WorkerCount) || WorkerCount <= 0) {
+        showToast("จำนวนคนต้องมากกว่า 0", "danger");
+        return;
+      }
+      
       // ตรวจสอบวันที่และเวลา
       const workDate = formData.get("workDate");
-      const startHour = formData.get("startHour");
-      const startMinute = formData.get("startMinute");
-      const endHour = formData.get("endHour");
-      const endMinute = formData.get("endMinute");
+      const startTime = formData.get("startTime");
+      const endTime = formData.get("endTime");
       
-      if (!workDate || startHour === "" || startMinute === "" || endHour === "" || endMinute === "") {
+      if (!workDate || !startTime || !endTime) {
         showToast("กรุณากรอกวันที่และเวลาให้ครบถ้วน", "danger");
         return;
       }
       
-      // สร้าง datetime strings
-      const startISO = `${workDate}T${startHour}:${startMinute}:00`;
-      const endISO = `${workDate}T${endHour}:${endMinute}:00`;
+      // สร้าง datetime strings (แปลงเป็นเวลาไทย)
+      const startISO = `${workDate}T${startTime}:00`;
+      const endISO = `${workDate}T${endTime}:00`;
+      
+      // สร้าง Date objects และแปลงเป็น UTC (ลบ 7 ชั่วโมงจากเวลาไทย)
       let start = new Date(startISO);
       let end = new Date(endISO);
+      
+      // แปลงจากเวลาไทยเป็น UTC สำหรับเก็บในฐานข้อมูล
+      start = new Date(start.getTime() - (7 * 60 * 60 * 1000));
+      end = new Date(end.getTime() - (7 * 60 * 60 * 1000));
       
       // ถ้าเวลาสิ้นสุดน้อยกว่าเวลาเริ่ม ให้เพิ่มวันถัดไป
       if (end <= start) {
         end.setDate(end.getDate() + 1);
       }
       
-      // ตรวจสอบเครื่องจักรที่เลือก (radio button)
-      const selectedMachine = document.querySelector('#machineCheckboxGroup input[type="radio"]:checked');
-      if (!selectedMachine) {
-        showToast("กรุณาเลือกเครื่องจักร", "danger");
+      // ตรวจสอบเครื่องจักรที่เลือก (checkbox - อนุญาตให้เลือกได้หลายเครื่อง)
+      const selectedMachines = document.querySelectorAll('#machineCheckboxGroup input[type="checkbox"]:checked');
+      if (selectedMachines.length === 0) {
+        showToast("กรุณาเลือกเครื่องจักรอย่างน้อย 1 เครื่อง", "danger");
         return;
       }
       
+      // รวบรวม MachineID ที่เลือก (เก็บเป็น array หรือ string รวมกัน)
+      const machineIds = Array.from(selectedMachines).map(machine => parseInt(machine.value, 10));
+      const machineIdString = machineIds.join(','); // เก็บเป็น "1,2,3" ในฐานข้อมูล
+      
+      // ดึงข้อมูลผลิตภัณฑ์และขนาด
+      const productName = formData.get("productName") || "";
+      const productSize = formData.get("productSize") || "";
+      const jobName = productName && productSize ? `${productName} (${productSize})` : "";
+      
       const taskData = {
-        JobName: formData.get("jobName") || "",
+        JobName: jobName,
         LotNumber: formData.get("lotNumber"),
         PlannedLotSize: LotSize,
         ActualOutput: parseInt(formData.get("actualOutput") || "0", 10),
-        MachineID: parseInt(selectedMachine.value, 10),
+        WorkerCount: WorkerCount,
+        MachineID: machineIds[0], // เก็บเครื่องแรกเป็น primary machine
+        MachineIDs: machineIdString, // เก็บรายการเครื่องทั้งหมด (ต้องเพิ่ม field นี้ในฐานข้อมูล)
         DepartmentID: parseInt(formData.get("department"), 10),
         Status: formData.get("status") || "planning",
         Details: formData.get("details") || "",
         CreatedByUserID: 1,
-        StartTime: startISO,
+        StartTime: start.toISOString().substring(0, 19),
         EndTime: end.toISOString().substring(0, 19),
+        // เพิ่มฟิลด์ใหม่สำหรับผลิตภัณฑ์
+        ProductName: productName,
+        ProductSize: productSize,
       };
       
       if (window.selectedEditTask && window.selectedEditTask.JobID) {
@@ -1256,7 +1524,7 @@ function setupAddJobFormHandler() {
           // โหลดข้อมูลใหม่และ refresh ปฏิทิน
           await TaskManager.loadFromDB();
           await CalendarRenderer.render();
-          showToast("เพิ่มงานสำเร็จ", "success");
+          showToast(`เพิ่มงานสำเร็จ - ใช้เครื่องจักร ${selectedMachines.length} เครื่อง`, "success");
         } catch (error) {
           console.error('Add task error:', error);
           showToast("เกิดข้อผิดพลาดในการเพิ่มงาน: " + error.message, "danger");
@@ -1295,6 +1563,12 @@ function setupAddJobFormHandler() {
             </div>
           `;
         }
+        
+        // ล้างการเลือกขนาดผลิตภัณฑ์
+        const sizeRadios = document.querySelectorAll('input[name="productSize"]');
+        sizeRadios.forEach(radio => {
+          radio.checked = false;
+        });
       }, 300);
     });
     addJobForm._handlerAdded = true;
@@ -1314,20 +1588,26 @@ document.addEventListener("DOMContentLoaded", setupAddJobFormHandler);
 // Add task button is handled by existing modal setup
 // No additional setup needed
 
-// 3. ลบฟิลเตอร์ - ไม่ต้องการการกรอง
-// function setupFilterForm() {
-//   [
-//     "departmentFilter",
-//     "dateFilter",
-//     "statusFilter",
-//     "keywordFilter",
-//   ].forEach((id) => {
-//     document.getElementById(id)?.addEventListener("input", function () {
-//       CalendarRenderer.render();
-//     });
-//   });
-// }
-// document.addEventListener("DOMContentLoaded", setupFilterForm);
+// 3. ฟิลเตอร์ - เปิดการใช้งานแล้ว
+function setupFilterForm() {
+  [
+    "departmentFilter",
+    "dateFilter", 
+    "statusFilter",
+    "keywordFilter",
+  ].forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener("input", function () {
+        CalendarRenderer.render();
+      });
+      element.addEventListener("change", function () {
+        CalendarRenderer.render();
+      });
+    }
+  });
+}
+document.addEventListener("DOMContentLoaded", setupFilterForm);
 
 // 4. เพิ่ม confirm dialog เมื่อกดปุ่ม 'ยกเลิก' ใน modal เพิ่มงานใหม่
 function setupCancelAddJobBtn() {
@@ -1390,23 +1670,35 @@ const machineOptions = {
 };
 
 /**
- * Render machine checkboxes for selected department
+ * Render machine checkboxes for selected department (แก้ไขให้ใช้ checkbox แทน radio)
  * @param {string} dept - department key
  */
 function renderMachineCheckboxes(dept) {
   const machineCheckboxGroup = document.getElementById("machineCheckboxGroup");
   if (!machineCheckboxGroup) return;
+  
   machineCheckboxGroup.innerHTML = '';
-  if (machineOptions[dept]) {
+  
+  if (machineOptions[dept] && machineOptions[dept].length > 0) {
     machineOptions[dept].forEach(opt => {
-      const id = `machine_${opt.id}`;
-      const div = document.createElement("div");
-      div.className = "form-check";
-      div.innerHTML = `<input class="form-check-input" type="radio" name="machine" id="${id}" value="${opt.id}"> <label class="form-check-label" for="${id}">${opt.text}</label>`;
-      machineCheckboxGroup.appendChild(div);
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'machine-option mb-2';
+      optionDiv.innerHTML = `
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="machine${opt.id}" name="machines[]" value="${opt.id}">
+          <label class="form-check-label" for="machine${opt.id}">${opt.text}</label>
+        </div>
+      `;
+      
+      machineCheckboxGroup.appendChild(optionDiv);
     });
   } else {
-    machineCheckboxGroup.innerHTML = '<span class="text-muted">กรุณาเลือกแผนกก่อน</span>';
+    machineCheckboxGroup.innerHTML = `
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>
+        <p class="mb-0">ไม่มีเครื่องจักรในแผนกนี้</p>
+      </div>
+    `;
   }
 }
 
@@ -1462,23 +1754,34 @@ function setupDepartmentMachineEvents() {
 }
 document.addEventListener("DOMContentLoaded", setupDepartmentMachineEvents);
 
-// 8. Utility: clear all filters and rerender calendar - ปิดการใช้งาน
-// function clearFilters() {
-//   document.getElementById("departmentFilter").value = "";
-//   document.getElementById("dateFilter").value = "";
-//   document.getElementById("statusFilter").value = "";
-//   document.getElementById("keywordFilter").value = "";
-//   CalendarRenderer.render();
-// }
+// 8. Utility: clear all filters and rerender calendar - เปิดการใช้งาน
+function clearFilters() {
+  const departmentFilter = document.getElementById("departmentFilter");
+  const dateFilter = document.getElementById("dateFilter");
+  const statusFilter = document.getElementById("statusFilter");
+  const keywordFilter = document.getElementById("keywordFilter");
+  
+  if (departmentFilter) departmentFilter.value = "";
+  if (dateFilter) dateFilter.value = "";
+  if (statusFilter) statusFilter.value = "";
+  if (keywordFilter) keywordFilter.value = "";
+  
+  CalendarRenderer.render();
+}
 
-// เพิ่มฟังก์ชันล้างฟิลเตอร์เมื่อโหลดหน้า - ปิดการใช้งาน
-// function clearAllFiltersOnLoad() {
-//   // ล้างฟิลเตอร์เมื่อโหลดหน้าเพื่อแสดงงานทั้งหมด
-//   document.getElementById("departmentFilter").value = "";
-//   document.getElementById("dateFilter").value = "";
-//   document.getElementById("statusFilter").value = "";
-//   document.getElementById("keywordFilter").value = "";
-// }
+// เพิ่มฟังก์ชันล้างฟิลเตอร์เมื่อโหลดหน้า - เปิดการใช้งาน
+function clearAllFiltersOnLoad() {
+  // ล้างฟิลเตอร์เมื่อโหลดหน้าเพื่อแสดงงานทั้งหมด
+  const departmentFilter = document.getElementById("departmentFilter");
+  const dateFilter = document.getElementById("dateFilter");
+  const statusFilter = document.getElementById("statusFilter");
+  const keywordFilter = document.getElementById("keywordFilter");
+  
+  if (departmentFilter) departmentFilter.value = "";
+  if (dateFilter) dateFilter.value = "";
+  if (statusFilter) statusFilter.value = "";
+  if (keywordFilter) keywordFilter.value = "";
+}
 
 // 9. Toast utility for showing messages
 function showToast(msg, type = "success") {
@@ -1503,8 +1806,8 @@ function setupTooltips() {
 }
 document.addEventListener("DOMContentLoaded", setupTooltips);
 
-// 12. Expose clearFilters (ปิดการใช้งาน), showToast, showLoading to global (for use in HTML)
-// window.clearFilters = clearFilters;
+// 12. Expose clearFilters (เปิดการใช้งาน), showToast, showLoading to global (for use in HTML)
+window.clearFilters = clearFilters;
 window.showToast = showToast;
 window.showLoading = showLoading;
 
@@ -1528,3 +1831,9 @@ function goToToday() {
 window.previousWeek = previousWeek;
 window.nextWeek = nextWeek;
 window.goToToday = goToToday;
+
+// Expose TaskManager.confirmTask for use in confirm-complete.html
+window.TaskManager = TaskManager;
+
+// Expose TaskManager functions for external use (confirm-complete page)
+window.TaskManager = TaskManager;
