@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ประวัติงานย้อนหลัง - ระบบควบคุมเครื่องจักร</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .history-table th, .history-table td { vertical-align: middle; }
+        .history-table tbody tr:hover { background: #f8f9fa; }
+        .history-title { font-size: 2rem; font-weight: 700; color: #0d6efd; }
+        .history-summary { font-size: 1.1rem; color: #555; }
+    </style>
+</head>
+    <script>
+    // ตรวจสอบ session ด้วย AJAX ถ้ายังไม่ได้ login ให้ redirect ไปหน้า login.html
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('login.php?action=check', { credentials: 'same-origin' })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.loggedIn) {
+                    window.location.href = 'login.html';
+                }
+            })
+            .catch(() => {
+                window.location.href = 'login.html';
+            });
+    });
+</script>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html"><i class="bi bi-clock-history me-2"></i>ประวัติงานที่เสร็จสิ้น</a>
+            <a href="index.html" class="btn btn-outline-light"><i class="bi bi-calendar3 me-1"></i> กลับสู่ปฏิทิน</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="mb-4 text-center">
+            <div class="history-title mb-2">ประวัติงานที่เสร็จสิ้น</div>
+            <div class="history-summary">รายการงานที่ดำเนินการเสร็จสิ้นและบันทึกไว้ย้อนหลัง สามารถค้นหาตามวันที่หรือคำสำคัญ</div>
+        </div>
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row mb-3 g-2">
+                    <div class="col-md-4">
+                        <input type="date" id="historyDateFilter" class="form-control" placeholder="ค้นหาตามวันที่เสร็จสิ้น">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" id="historyKeywordFilter" class="form-control" placeholder="ค้นหาชื่องาน/รายละเอียด">
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-outline-primary" id="refreshHistoryBtn"><i class="bi bi-arrow-clockwise"></i> รีเฟรช</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover history-table align-middle" id="historyTable">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>วันที่สิ้นสุด</th>
+                                <th>ชื่องาน</th>
+                                <th>แผนก</th>
+                                <th>เครื่องจักร</th>
+                                <th>เลข Lot</th>
+                                <th>ขนาด Lot</th>
+                                <th>จำนวนผลิตจริง</th>
+                                <th>จำนวนของดี</th>
+                                <th>เวลาหยุดเครื่อง (นาที)</th>
+                                <th>เวลาเริ่มงานจริง</th>
+                                <th>เวลาสิ้นสุดงานจริง</th>
+                                <th>ระยะเวลาตามแผน</th>
+                                <th>สถานะงาน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr><td colspan="14" class="text-center text-muted">กำลังโหลด...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    async function loadHistory() {
+        const res = await fetch('tasks.php?action=get_history');
+        const data = await res.json();
+        console.log('Raw history data:', data);
+        const dateFilter = document.getElementById('historyDateFilter').value;
+        const keyword = document.getElementById('historyKeywordFilter').value.trim().toLowerCase();
+        // แสดงเฉพาะงานที่ status = completed
+        let filtered = data.filter(t => t.status === 'completed');
+        console.log('Filtered completed:', filtered);
+        if (dateFilter) {
+            filtered = filtered.filter(t => t.EndTime && t.EndTime.startsWith(dateFilter));
+        }
+        if (keyword) {
+            filtered = filtered.filter(t => {
+                return (t.JobTitle && t.JobTitle.toLowerCase().includes(keyword)) ||
+                       (t.Details && t.Details.toLowerCase().includes(keyword));
+            });
+        }
+        const tbody = document.getElementById('historyTableBody');
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted">ไม่พบประวัติงานที่ตรงเงื่อนไข</td></tr>';
+            return;
+        }
+    
+
+        // ฟังก์ชันช่วย parse วันที่แบบปลอดภัย
+        function parseDateSafe(dateVal, fieldName, taskObj) {
+            try {
+                let dateStr = dateVal;
+                if (dateVal && typeof dateVal === 'object' && dateVal.date) {
+                    dateStr = dateVal.date;
+                }
+                if (!dateStr || typeof dateStr !== 'string') return null;
+                if (dateStr.trim() === '' || dateStr.startsWith('0000-00-00')) return null;
+                // ถ้าเป็น string ที่เป็นตัวเลข (timestamp)
+                if (/^\d+$/.test(dateStr)) return new Date(Number(dateStr));
+                // ถ้าเป็น 'YYYY-MM-DD HH:mm:ss(.000000)' ให้แปลงเป็น 'YYYY-MM-DDTHH:mm:ss'
+                let fixed = dateStr.replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})(\.\d+)?$/, '$1T$2');
+                let d = new Date(fixed);
+                if (isNaN(d)) {
+                    d = new Date(dateStr);
+                }
+                if (isNaN(d)) {
+                    console.error('Date parse error:', { field: fieldName, value: dateStr, fixed, task: taskObj });
+                    return null;
+                }
+                return d;
+            } catch (e) {
+                console.error('Date parse error:', { field: fieldName, value: dateVal, task: taskObj, error: e });
+                return null;
+            }
+        }
+        tbody.innerHTML = filtered.map(task => {
+            // ระยะเวลาแผน
+            let durationText = '-';
+            if (task.DurationInHours && !isNaN(task.DurationInHours)) {
+                const hours = Math.floor(task.DurationInHours);
+                const minutes = Math.round((task.DurationInHours - hours) * 60);
+                durationText = `${hours} ชม. ${minutes} นาที`;
+            }
+            // เวลาจริงและเวลาสิ้นสุด (parse แบบปลอดภัย)
+            const endTime = parseDateSafe(task.EndTime, 'EndTime', task);
+            const actualStart = parseDateSafe(task.ActualStartTime, 'ActualStartTime', task);
+            const actualEnd = parseDateSafe(task.ActualEndTime, 'ActualEndTime', task);
+            // ตกแต่งสถานะ
+            let statusBadge = '';
+            if (task.status === 'completed') statusBadge = '<span class="badge bg-success">เสร็จสิ้น</span>';
+            else if (task.status === 'waiting-confirm') statusBadge = '<span class="badge bg-info text-dark">รอยืนยัน</span>';
+            else if (task.status === 'in-progress') statusBadge = '<span class="badge bg-warning text-dark">กำลังดำเนินงาน</span>';
+            else if (task.status === 'planning') statusBadge = '<span class="badge bg-secondary">กำลังวางแผน</span>';
+            return `
+                <tr class="table-success">
+                    <td>${endTime ? endTime.toLocaleString('th-TH') : '-'}</td>
+                    <td>${task.JobTitle || '-'}</td>
+                    <td>${task.Department || '-'}</td>
+                    <td>${task.MachineType || '-'}</td>
+                    <td>${task.LotNumber || '-'}</td>
+                    <td>${task.LotSize || '-'}</td>
+                    <td>${task.ProducedQuantity || '-'}</td>
+                    <td>${typeof task.GoodProduct !== 'undefined' && task.GoodProduct !== null ? task.GoodProduct : '-'}</td>
+                    <td>${typeof task.Downtime !== 'undefined' && task.Downtime !== null ? task.Downtime : '-'}</td>
+                    <td>${actualStart ? actualStart.toLocaleString('th-TH') : '-'}</td>
+                    <td>${actualEnd ? actualEnd.toLocaleString('th-TH') : '-'}</td>
+                    <td>${durationText}</td>
+                    <td>${statusBadge}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+    document.getElementById('refreshHistoryBtn').onclick = loadHistory;
+    document.getElementById('historyDateFilter').oninput = loadHistory;
+    document.getElementById('historyKeywordFilter').oninput = loadHistory;
+    window.addEventListener('DOMContentLoaded', loadHistory);
+    </script>
+</body>
+</html>
