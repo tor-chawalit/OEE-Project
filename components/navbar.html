@@ -341,8 +341,8 @@ function setupNavLogout() {
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
-          // Redirect to login page
-          window.location.href = 'login.html';
+          // Commented out for development - allows staying on current page
+          // window.location.href = 'login.html';
         }
       }
     });

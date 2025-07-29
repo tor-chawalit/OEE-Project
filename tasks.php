@@ -362,10 +362,10 @@ $updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'Machine
         
         $existingLog = sqlsrv_fetch_array($checkOEEStmt, SQLSRV_FETCH_ASSOC);
         
-        // เตรียมข้อมูลสำหรับบันทึก (ตรงกับโครงสร้างฐานข้อมูลจริง)
+        // เตรียมข้อมูลสำหรับบันทึก (ตรงกับโครงสร้างฐานข้อมูลจริง) - กะ 8 ชั่วโมง (08:00-18:00)
         $actualStartTime = $data['ActualStartTime'] ?? null;
         $actualEndTime = $data['ActualEndTime'] ?? null;
-        $shiftHours = floatval($data['ShiftHours'] ?? 8.0);
+        $shiftHours = floatval($data['ShiftHours'] ?? 8.0);  // 8 ชั่วโมง (08:00-18:00)
         $overtimeMinutes = intval($data['OvertimeMinutes'] ?? 0);
         
         // แปลงเวลาพักจากนาทีเป็น boolean (มีพักหรือไม่)
@@ -449,7 +449,7 @@ $updatable = ['JobName', 'LotNumber', 'PlannedLotSize', 'ActualOutput', 'Machine
             }
             
             // Commit transaction
-            if (sqlsrv_commit($conn) === false) {
+            if (sqlsrv_commit($conn) === false) {   
                 throw new Exception('Failed to commit transaction: ' . print_r(sqlsrv_errors(), true));
             }
             

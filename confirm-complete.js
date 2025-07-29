@@ -212,8 +212,8 @@ class ConfirmCompleteManager {
         document.getElementById('totalPieces')?.addEventListener('input', () => this.calculatePerformance());
         document.getElementById('rejectPieces')?.addEventListener('input', () => this.calculateQuality());
 
-        // ตั้งค่า listener สำหรับ checkbox ความยาวกะ (8 หรือ 9 ชั่วโมง)
-        document.getElementById('shiftLength9h')?.addEventListener('change', () => this.calculateTimes());
+        // ตั้งค่า listener สำหรับ checkbox ความยาวกะ (8 ชั่วโมง 08:00-18:00)
+        document.getElementById('shiftLength8h')?.addEventListener('change', () => this.calculateTimes());
 
         // แสดงปุ่มส่งฟอร์มหลังจากโหลดเสร็จ (delay เล็กน้อย)
         setTimeout(() => {
@@ -320,8 +320,8 @@ class ConfirmCompleteManager {
         document.getElementById('operatingTime').value = `${Math.max(0, operatingTime)} นาที`;
         document.getElementById('netRunTime').value = `${Math.max(0, operatingTime)} นาที`;
 
-        // แสดงเวลากะที่มี (สำหรับข้อมูล)
-        const shiftMinutes = document.getElementById('shiftLength9h')?.checked ? 540 : 480;  // 9 หรือ 8 ชั่วโมง
+        // แสดงเวลากะที่มี (สำหรับข้อมูล) - กะ 8 ชั่วโมง (08:00-18:00)
+        const shiftMinutes = document.getElementById('shiftLength8h')?.checked ? 480 : 0;  // 8 ชั่วโมง (08:00-18:00)
         const availableTime = shiftMinutes + overtimeMinutes;
         
         const shiftDisplay = document.getElementById('shiftAvailableTimeDisplay');
@@ -654,8 +654,8 @@ class ConfirmCompleteManager {
 
         const downtimeMinutes = parseInt(document.getElementById('downtime').value || '0');
         
-        // Calculate shift hours and planned production time
-        const shiftHours = document.getElementById('shiftLength9h')?.checked ? 9.0 : 8.0;
+        // Calculate shift hours and planned production time - กะ 8 ชั่วโมง (08:00-18:00)
+        const shiftHours = document.getElementById('shiftLength8h')?.checked ? 8.0 : 0;  // 8 ชั่วโมง ถ้าเลือก
         const plannedProductionMinutes = totalMinutes - totalBreakMinutes;
         const runTimeMinutes = plannedProductionMinutes - downtimeMinutes;
 
@@ -785,10 +785,10 @@ class ConfirmCompleteManager {
                 },
                 body: JSON.stringify({
                     JobID: taskId,
-                    // ใช้ข้อมูลเริ่มต้นสำหรับการยืนยันจาก TaskManager
+                    // ใช้ข้อมูลเริ่มต้นสำหรับการยืนยันจาก TaskManager - กะ 8 ชั่วโมง (08:00-18:00)
                     ActualStartTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
                     ActualEndTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
-                    ShiftHours: 8.0,
+                    ShiftHours: 8.0,  // 8 ชั่วโมง (08:00-18:00)
                     OvertimeMinutes: 0,
                     TookBreakMorning: 0,
                     TookBreakLunch: 60,

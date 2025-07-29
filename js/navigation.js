@@ -18,7 +18,7 @@ class NavigationManager {
       await this.loadNavbar();
       this.setupEventListeners();
       this.setActivePage();
-      this.checkSession();
+      // this.checkSession(); // Commented out for development - allows direct access without login
       this.initialized = true;
       console.log('Navigation Manager initialized successfully');
     } catch (error) {
@@ -116,13 +116,6 @@ class NavigationManager {
    * Setup event listeners for navigation
    */
   setupEventListeners() {
-    // Page visibility change handler
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.refreshUserInfo();
-      }
-    });
-
     // Handle navigation link clicks with loading states
     setTimeout(() => {
       const navLinks = document.querySelectorAll('.nav-link-enhanced');
@@ -151,6 +144,8 @@ class NavigationManager {
    * Check user session status
    */
   async checkSession() {
+    // Commented out for development - allows direct access without login
+    /*
     try {
       const response = await fetch('login.php?action=check', { 
         credentials: 'same-origin' 
@@ -171,68 +166,31 @@ class NavigationManager {
       // Redirect to login on session check failure
       window.location.href = 'login.html';
     }
+    */
   }
 
   /**
-   * Update user display information
+   * Update user display information - Disabled for development
    */
   updateUserDisplay(user) {
-    setTimeout(() => {
-      const userIdElement = document.getElementById('currentUserId');
-      if (userIdElement && user.id) {
-        userIdElement.textContent = user.id;
-      }
-
-      // Update user name if available
-      const userNameElements = document.querySelectorAll('.user-name');
-      userNameElements.forEach(element => {
-        if (user.name) {
-          element.textContent = user.name;
-        }
-      });
-    }, 100);
+    // User display functionality disabled for development
+    console.log('User display functionality disabled for development');
   }
 
   /**
-   * Refresh user information
+   * Refresh user information - Disabled for development
    */
   async refreshUserInfo() {
-    try {
-      const response = await fetch('login.php?action=user_info', { 
-        credentials: 'same-origin' 
-      });
-      const data = await response.json();
-      
-      if (data.success && data.user) {
-        this.updateUserDisplay(data.user);
-      }
-    } catch (error) {
-      console.error('Failed to refresh user info:', error);
-    }
+    // User info refresh functionality disabled for development
+    console.log('User info refresh functionality disabled for development');
   }
 
   /**
-   * Handle logout functionality
+   * Handle logout functionality - Disabled for development
    */
   async logout() {
-    if (!confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
-      return;
-    }
-
-    // Show loading animation
-    this.showNavigationLoading();
-
-    try {
-      await fetch('logout.php', {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Always redirect to login, even if logout request fails
-      window.location.href = 'login.html';
-    }
+    // Logout functionality disabled for development
+    console.log('Logout functionality disabled for development');
   }
 
   /**
